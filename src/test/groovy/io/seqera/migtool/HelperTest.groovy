@@ -11,26 +11,26 @@ class HelperTest extends Specification {
     def 'should load resources' () {
 
         expect:
-        Helper.getResourceFiles('/mysql') == ['/mysql/file1.sql']
-        Helper.getResourceFiles('/mariadb') == ['/mariadb/V01__maria1.sql', '/mariadb/V02__maria2.sql']
+        Helper.getResourceFiles('/db/mysql') == ['/db/mysql/file1.sql']
+        Helper.getResourceFiles('/db/mariadb') == ['/db/mariadb/V01__maria1.sql', '/db/mariadb/V02__maria2.sql']
         and:
-        Helper.getResourceFiles('/mysql/') == ['/mysql/file1.sql']
-        Helper.getResourceFiles('/mariadb/') == ['/mariadb/V01__maria1.sql', '/mariadb/V02__maria2.sql']
+        Helper.getResourceFiles('/db/mysql/') == ['/db/mysql/file1.sql']
+        Helper.getResourceFiles('/db/mariadb/') == ['/db/mariadb/V01__maria1.sql', '/db/mariadb/V02__maria2.sql']
         and:
-        Helper.getResourceFiles('mysql') == ['mysql/file1.sql']
-        Helper.getResourceFiles('mariadb') == ['mariadb/V01__maria1.sql', 'mariadb/V02__maria2.sql']
+        Helper.getResourceFiles('db/mysql') == ['db/mysql/file1.sql']
+        Helper.getResourceFiles('db/mariadb') == ['db/mariadb/V01__maria1.sql', 'db/mariadb/V02__maria2.sql']
     }
 
     def 'should read resource file' () {
 
         expect:
-        Helper.getResourceAsString('mysql/file1.sql').trim() == 'select * from my-table;'
-        Helper.getResourceAsString('mariadb/V01__maria1.sql') == 'select * from table1;\n'
-        Helper.getResourceAsString('mariadb/V02__maria2.sql') == 'select * from table2;\n\nupdate table table3;;\n\n'
+        Helper.getResourceAsString('db/mysql/file1.sql').trim() == 'select * from my-table;'
+        Helper.getResourceAsString('db/mariadb/V01__maria1.sql') == 'select * from table1;\n'
+        Helper.getResourceAsString('db/mariadb/V02__maria2.sql') == 'select * from table2;\n\nupdate table table3;;\n\n'
         and:
-        Helper.getResourceAsString('/mysql/file1.sql').trim() == 'select * from my-table;'
-        Helper.getResourceAsString('/mariadb/V01__maria1.sql') == 'select * from table1;\n'
-        Helper.getResourceAsString('/mariadb/V02__maria2.sql') == 'select * from table2;\n\nupdate table table3;;\n\n'
+        Helper.getResourceAsString('/db/mysql/file1.sql').trim() == 'select * from my-table;'
+        Helper.getResourceAsString('/db/mariadb/V01__maria1.sql') == 'select * from table1;\n'
+        Helper.getResourceAsString('/db/mariadb/V02__maria2.sql') == 'select * from table2;\n\nupdate table table3;;\n\n'
 
     }
 

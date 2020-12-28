@@ -1,4 +1,4 @@
-create table migtool_history
+create table MIGTOOL_HISTORY
 (
     `id` int not null auto_increment,
     `rank` int not null,

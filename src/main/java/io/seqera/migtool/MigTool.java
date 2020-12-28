@@ -46,48 +46,68 @@ public class MigTool {
     String password;
     String dialect;
     String locations;
+    ClassLoader classLoader;
 
     private Connection connection;
     private List<MigRecord> migrationEntries;
 
-    MigTool withDriver(String driver) {
+    public MigTool withDriver(String driver) {
         this.driver = driver;
         return this;
     }
 
-    MigTool withUrl(String url) {
+    public MigTool withUrl(String url) {
         this.url = url;
         return this;
     }
 
-    MigTool withUser(String user) {
+    public MigTool withUser(String user) {
         this.user = user;
         return this;
     }
 
-    MigTool withPassword(String password) {
+    public MigTool withPassword(String password) {
         this.password = password;
         return this;
     }
 
-    MigTool withDialect(String dialect) {
+    public MigTool withDialect(String dialect) {
         this.dialect = dialect;
         return this;
     }
 
-    MigTool withLocations(String locations) {
+    public MigTool withLocations(String locations) {
         this.locations = locations;
+        return this;
+    }
+
+    public MigTool withClassLoader(ClassLoader loader) {
+        this.classLoader = loader;
         return this;
     }
 
     /**
      * Main application entry point
      */
-    public void run() {
-         init();
-         createIfNotExists();
-         scanMigrations();
-         apply();
+    public MigTool run() {
+        init();
+        ClassLoader previous = null;
+        if( classLoader!=null ) {
+            previous = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader(classLoader);
+        }
+
+        try {
+            createIfNotExists();
+            scanMigrations();
+            apply();
+        }
+        finally {
+            if( previous!=null ) {
+                Thread.currentThread().setContextClassLoader(previous);
+            }
+        }
+        return this;
     }
 
     protected Connection getConnection() {
@@ -216,12 +236,16 @@ public class MigTool {
      * Apply the migration files
      */
     protected void apply() {
+        if( migrationEntries.size()==0 ) {
+            log.info("No DB migrations found");
+        }
 
         try {
             connection.setAutoCommit(false);
             for( MigRecord it : migrationEntries) {
                 applyMigration(it);
             }
+            connection.commit();
         }
         catch (SQLException e) {
             try { connection.rollback(); } catch (SQLException err) { log.warn("Unable to rollback transaction -- cause: "+e.getMessage()); }
@@ -245,10 +269,13 @@ public class MigTool {
 
     protected void applyMigration(MigRecord entry) throws SQLException {
         if( checkMigrated(entry) ) {
+            log.info("DB migration already applied: {} {}", entry.rank, entry.script);
             return;
         }
 
         checkRank(entry);
+
+        log.info("DB migration {} {} ..", entry.rank, entry.script);
 
         // apply all migration statements
         long now = System.currentTimeMillis();
@@ -258,15 +285,24 @@ public class MigTool {
                 stm.addBatch(it);
             }
             stm.executeBatch();
-            // save the current migration
-            PreparedStatement insert = connection.prepareStatement("insert into "+MIGTOOL_TABLE+" (`rank`,`script`,`checksum`,`created_on`,`execution_time`) values (?,?,?,?,?)");
+         }
+
+        // compute the delta
+        int delta = (int)(System.currentTimeMillis()-now);
+
+        // save the current migration
+        final String insertSql = "insert into "+MIGTOOL_TABLE+" (`rank`,`script`,`checksum`,`created_on`,`execution_time`) values (?,?,?,?,?)";
+        try (PreparedStatement insert = connection.prepareStatement(insertSql)) {
             insert.setInt(1, entry.rank);
             insert.setString(2, entry.script);
             insert.setString(3, entry.checksum);
             insert.setTimestamp(4, new Timestamp(now));
-            insert.setInt(5, (int)(System.currentTimeMillis()-now));
-            insert.execute();
+            insert.setInt(5, delta);
+            insert.executeUpdate();
         }
+        // just log
+        log.info("DB migration performed: {} {} - execution time {}ms", entry.rank, entry.script, delta);
+
     }
 
     protected boolean checkMigrated(MigRecord entry) {

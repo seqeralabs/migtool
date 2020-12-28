@@ -35,13 +35,10 @@ jobs:
 
       - name: Tests
         run: ./gradlew check
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.TOWER_CI_AWS_ACCESS }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.TOWER_CI_AWS_SECRET }}
 
       - name: Release
         if: "contains(github.event.head_commit.message, '[release]')"
-        run: ./gradle.sh clean buildInfo test
+        run: ./gradlew publish
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.TOWER_CI_AWS_ACCESS }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.TOWER_CI_AWS_SECRET }}

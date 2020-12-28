@@ -47,7 +47,7 @@ class MigRecordTest extends Specification {
     def 'should parse resource file'() {
 
         when:
-        def entry1 = MigRecord.parseResourcePath('/mariadb/V01__maria1.sql')
+        def entry1 = MigRecord.parseResourcePath('/db/mariadb/V01__maria1.sql')
         then:
         entry1.rank == 1
         entry1.script == 'V01__maria1.sql'
@@ -56,7 +56,7 @@ class MigRecordTest extends Specification {
 
 
         when:
-        def entry2 = MigRecord.parseResourcePath('/mariadb/V02__maria2.sql')
+        def entry2 = MigRecord.parseResourcePath('/db/mariadb/V02__maria2.sql')
         then:
         entry2.rank == 2
         entry2.script == 'V02__maria2.sql'

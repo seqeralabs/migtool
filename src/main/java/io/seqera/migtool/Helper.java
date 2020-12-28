@@ -36,7 +36,7 @@ public class Helper {
                 filenames.add(name + resource);
             }
         }
-        catch (IOException e) {
+        catch (Exception e) {
             throw new IllegalStateException("Unable to scan classpath: " + path, e);
         }
 
@@ -44,8 +44,11 @@ public class Helper {
     }
 
     public static InputStream getResourceAsStream(String resourceName) {
-        final InputStream in = getContextClassLoader().getResourceAsStream(resourceName);
-        return in == null ? Helper.class.getResourceAsStream(resourceName) : in;
+        InputStream result = Thread
+                .currentThread()
+                .getContextClassLoader()
+                .getResourceAsStream(resourceName);
+        return result != null ? result : Helper.class.getResourceAsStream(resourceName);
     }
 
     public static String getResourceAsString(String resourceName) {
@@ -56,10 +59,6 @@ public class Helper {
         catch (IOException e) {
             throw new IllegalStateException("Unable to get resource string: " + resourceName + " -- cause: " + e.getMessage(), e);
         }
-    }
-
-    static private ClassLoader getContextClassLoader() {
-        return Thread.currentThread().getContextClassLoader();
     }
 
     public static String computeSha256(byte[] payload) {
