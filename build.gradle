@@ -15,6 +15,11 @@ plugins {
 version = '1.0.0-SNAPSHOT'
 group = 'io.seqera'
 
+java {
+    sourceCompatibility = JavaVersion.toVersion('1.8')
+    targetCompatibility = JavaVersion.toVersion('1.8')
+}
+
 repositories {
     jcenter()
     mavenCentral()
