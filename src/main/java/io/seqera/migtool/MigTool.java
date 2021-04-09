@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.SortedSet;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -190,7 +190,7 @@ public class MigTool {
 
         if( locations.startsWith(SOURCE_CLASSPATH) ) {
             String path = locations.substring(SOURCE_CLASSPATH.length());
-            SortedSet<String> files = Helper.getResourceFiles(path);
+            Set<String> files = Helper.getResourceFiles(path);
             List<MigRecord> entries = new ArrayList<>(files.size());
             for( String it : files ) {
                 MigRecord entry = MigRecord.parseResourcePath(it);

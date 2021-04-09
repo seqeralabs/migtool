@@ -13,8 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Enumeration;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -25,7 +25,7 @@ import java.util.jar.JarFile;
  */
 public class Helper {
 
-    public static SortedSet<String> getResourceFiles(String path) {
+    public static Set<String> getResourceFiles(String path) {
         if( path==null )
             throw new IllegalArgumentException("Missing resource path");
 
@@ -157,8 +157,8 @@ public class Helper {
         return resourceUrl != null ? resourceUrl : Helper.class.getResource(resourceName);
     }
 
-    private static SortedSet<String> getResourceFilesFromJar(URL resourceUrl, String path) {
-        SortedSet<String> filenames = new TreeSet<>();
+    private static Set<String> getResourceFilesFromJar(URL resourceUrl, String path) {
+        Set<String> filenames = new HashSet<>();
 
         try {
             JarURLConnection connection = (JarURLConnection) resourceUrl.openConnection();
@@ -178,8 +178,8 @@ public class Helper {
         return filenames;
     }
 
-    private static SortedSet<String> getResourceFilesFromDir(URL resourceUrl, String path) {
-        SortedSet<String> filenames = new TreeSet<>();
+    private static Set<String> getResourceFilesFromDir(URL resourceUrl, String path) {
+        Set<String> filenames = new HashSet<>();
 
         try (
                 InputStream in = resourceUrl.openStream();
