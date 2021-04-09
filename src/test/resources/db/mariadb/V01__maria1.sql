@@ -1,1 +1,1 @@
-select * from table1;
+create table XXX ( col1 varchar(1) );

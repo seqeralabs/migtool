@@ -4,6 +4,7 @@
 package io.seqera.migtool
 
 import java.nio.file.Files
+import io.seqera.migtool.resources.ClassFromJarWithResources
 
 import spock.lang.Specification
 
@@ -34,7 +35,7 @@ class MigToolTest extends Specification {
     }
 
 
-    def 'should apply migration' () {
+    def 'should apply local file migration' () {
         given:
         def folder = Files.createTempDirectory('test')
         folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
@@ -82,5 +83,85 @@ class MigToolTest extends Specification {
         folder?.deleteDir()
     }
 
+    def 'should apply class path migration' () {
+        given:
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("classpath:db/mariadb")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==2
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__maria1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__maria2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        tool.existTable('XXX')
+        tool.existTable('YYY')
+        tool.existTable('ZZZ')
+        and:
+        !tool.existTable('FOO')
+    }
+
+    def 'should apply migration coming from a jar file' () {
+        given:
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withClassLoader(ClassFromJarWithResources.classLoader)
+                .withLocations("classpath:db/migrations")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==2
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__file2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        tool.existTable('XXX')
+        tool.existTable('YYY')
+        tool.existTable('ZZZ')
+        and:
+        !tool.existTable('FOO')
+    }
 
 }
