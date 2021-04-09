@@ -11,27 +11,21 @@ class HelperTest extends Specification {
     def 'should load resources' () {
 
         expect:
-        Helper.getResourceFiles('/db/mysql') == ['/db/mysql/file1.sql']
-        Helper.getResourceFiles('/db/mariadb') == ['/db/mariadb/V01__maria1.sql', '/db/mariadb/V02__maria2.sql']
+        Helper.getResourceFiles('/db/mysql') == ['/db/mysql/file1.sql'].toSet()
+        Helper.getResourceFiles('/db/mariadb') == ['/db/mariadb/V01__maria1.sql', '/db/mariadb/V02__maria2.sql'].toSet()
         and:
-        Helper.getResourceFiles('/db/mysql/') == ['/db/mysql/file1.sql']
-        Helper.getResourceFiles('/db/mariadb/') == ['/db/mariadb/V01__maria1.sql', '/db/mariadb/V02__maria2.sql']
+        Helper.getResourceFiles('/db/mysql/') == ['/db/mysql/file1.sql'].toSet()
+        Helper.getResourceFiles('/db/mariadb/') == ['/db/mariadb/V01__maria1.sql', '/db/mariadb/V02__maria2.sql'].toSet()
         and:
-        Helper.getResourceFiles('db/mysql') == ['db/mysql/file1.sql']
-        Helper.getResourceFiles('db/mariadb') == ['db/mariadb/V01__maria1.sql', 'db/mariadb/V02__maria2.sql']
+        Helper.getResourceFiles('db/mysql') == ['db/mysql/file1.sql'].toSet()
+        Helper.getResourceFiles('db/mariadb') == ['db/mariadb/V01__maria1.sql', 'db/mariadb/V02__maria2.sql'].toSet()
     }
 
     def 'should read resource file' () {
-
         expect:
         Helper.getResourceAsString('db/mysql/file1.sql').trim() == 'select * from my-table;'
-        Helper.getResourceAsString('db/mariadb/V01__maria1.sql') == 'select * from table1;\n'
-        Helper.getResourceAsString('db/mariadb/V02__maria2.sql') == 'select * from table2;\n\nupdate table table3;;\n\n'
-        and:
-        Helper.getResourceAsString('/db/mysql/file1.sql').trim() == 'select * from my-table;'
-        Helper.getResourceAsString('/db/mariadb/V01__maria1.sql') == 'select * from table1;\n'
-        Helper.getResourceAsString('/db/mariadb/V02__maria2.sql') == 'select * from table2;\n\nupdate table table3;;\n\n'
-
+        Helper.getResourceAsString('db/mariadb/V01__maria1.sql') == 'create table XXX ( col1 varchar(1) );\n'
+        Helper.getResourceAsString('db/mariadb/V02__maria2.sql') == 'create table YYY ( col2 varchar(2) );\n\ncreate table ZZZ ( col3 varchar(3) );;\n\n'
     }
 
     def 'should compute hash' () {

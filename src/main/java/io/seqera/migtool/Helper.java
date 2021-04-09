@@ -7,11 +7,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.JarURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Enumeration;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 /**
  * Implement helper functions
@@ -20,27 +25,25 @@ import java.util.List;
  */
 public class Helper {
 
-    public static List<String> getResourceFiles(String path) {
+    public static SortedSet<String> getResourceFiles(String path) {
         if( path==null )
             throw new IllegalArgumentException("Missing resource path");
 
-        List<String> filenames = new ArrayList<>();
+        URL url = getResourceUrl(path);
+        if( url==null )
+            throw new IllegalStateException("Resource in '" + path + "' not found");
 
-        try (
-                InputStream in = getResourceAsStream(path);
-                BufferedReader br = new BufferedReader(new InputStreamReader(in)) ) {
-            String resource;
-
-            while ((resource = br.readLine()) != null) {
-                String name = path.endsWith("/") ? path : path +"/";
-                filenames.add(name + resource);
-            }
-        }
-        catch (Exception e) {
-            throw new IllegalStateException("Unable to scan classpath: " + path, e);
+        boolean isInJar = url.getProtocol().equals("jar");
+        if (isInJar) {
+            return getResourceFilesFromJar(url, path);
         }
 
-        return filenames;
+        boolean isFile = url.getProtocol().equals("file");
+        if (isFile) {
+            return getResourceFilesFromDir(url, path);
+        }
+
+        throw new IllegalStateException("Resources in '" + path + "' are neither in a JAR nor in the filesystem");
     }
 
     public static InputStream getResourceAsStream(String resourceName) {
@@ -143,6 +146,55 @@ public class Helper {
             }
         }
         return thrown;
+    }
+
+    private static URL getResourceUrl(String resourceName) {
+        URL resourceUrl = Thread
+                .currentThread()
+                .getContextClassLoader()
+                .getResource(resourceName);
+
+        return resourceUrl != null ? resourceUrl : Helper.class.getResource(resourceName);
+    }
+
+    private static SortedSet<String> getResourceFilesFromJar(URL resourceUrl, String path) {
+        SortedSet<String> filenames = new TreeSet<>();
+
+        try {
+            JarURLConnection connection = (JarURLConnection) resourceUrl.openConnection();
+            JarFile jarFile = connection.getJarFile();
+
+            Enumeration<JarEntry> entries = jarFile.entries();
+            while (entries.hasMoreElements()) {
+                String entryName = entries.nextElement().getName();
+                if (entryName.startsWith(path)) {
+                    filenames.add(entryName);
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to scan classpath: " + path, e);
+        }
+
+        return filenames;
+    }
+
+    private static SortedSet<String> getResourceFilesFromDir(URL resourceUrl, String path) {
+        SortedSet<String> filenames = new TreeSet<>();
+
+        try (
+                InputStream in = resourceUrl.openStream();
+                BufferedReader br = new BufferedReader(new InputStreamReader(in))
+        ) {
+            String resource;
+            while ((resource = br.readLine()) != null) {
+                String name = path.endsWith("/") ? path : path + "/";
+                filenames.add(name + resource);
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to scan classpath: " + path, e);
+        }
+
+        return filenames;
     }
 
     private static void closeWithWarning(Closeable closeable) {

@@ -1,4 +1,4 @@
-select * from table2;
+create table YYY ( col2 varchar(2) );
 
-update table table3;;
+create table ZZZ ( col3 varchar(3) );;
 
