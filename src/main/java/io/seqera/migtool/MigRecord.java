@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
  */
 class MigRecord implements Comparable<MigRecord> {
 
-    static final Pattern PREFIX = Pattern.compile("^V(\\d+)__(.+)");
+    static final Pattern DEFAULT_PATTERN = Pattern.compile("^V(\\d+)__(.+)");
 
     int rank;
     String script;
@@ -32,11 +32,14 @@ class MigRecord implements Comparable<MigRecord> {
         return String.format("MigRecord(rank=%d; script=%s; checksum=%s; statements=%s)", rank, script, checksum, join(statements));
     }
 
-    static MigRecord parseResourcePath(String path) {
+    static MigRecord parseResourcePath(String path, Pattern pattern) {
         int p = path.lastIndexOf("/");
         String fileName = p==-1 ? path : path.substring(p+1);
 
-        Matcher m = PREFIX.matcher(fileName);
+        if( pattern == null )
+            pattern = DEFAULT_PATTERN;
+        
+        Matcher m = pattern.matcher(fileName);
         if( !m.matches() ) {
             return null;
         }
@@ -50,7 +53,7 @@ class MigRecord implements Comparable<MigRecord> {
     }
 
     static MigRecord parseFilePath(Path path) {
-        Matcher m = PREFIX.matcher(path.getFileName().toString());
+        Matcher m = DEFAULT_PATTERN.matcher(path.getFileName().toString());
         if( !m.matches() ) {
             return null;
         }

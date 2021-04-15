@@ -12,13 +12,13 @@ class HelperTest extends Specification {
 
         expect:
         Helper.getResourceFiles('/db/mysql') == ['/db/mysql/file1.sql'].toSet()
-        Helper.getResourceFiles('/db/mariadb') == ['/db/mariadb/V01__maria1.sql', '/db/mariadb/V02__maria2.sql'].toSet()
+        Helper.getResourceFiles('/db/mariadb') == ['/db/mariadb/V01__maria1.sql', '/db/mariadb/V02__maria2.sql', '/db/mariadb/v01-foo.txt'].toSet()
         and:
         Helper.getResourceFiles('/db/mysql/') == ['/db/mysql/file1.sql'].toSet()
-        Helper.getResourceFiles('/db/mariadb/') == ['/db/mariadb/V01__maria1.sql', '/db/mariadb/V02__maria2.sql'].toSet()
+        Helper.getResourceFiles('/db/mariadb/') == ['/db/mariadb/V01__maria1.sql', '/db/mariadb/V02__maria2.sql', '/db/mariadb/v01-foo.txt'].toSet()
         and:
         Helper.getResourceFiles('db/mysql') == ['db/mysql/file1.sql'].toSet()
-        Helper.getResourceFiles('db/mariadb') == ['db/mariadb/V01__maria1.sql', 'db/mariadb/V02__maria2.sql'].toSet()
+        Helper.getResourceFiles('db/mariadb') == ['db/mariadb/V01__maria1.sql', 'db/mariadb/V02__maria2.sql', 'db/mariadb/v01-foo.txt'] as Set
     }
 
     def 'should read resource file' () {

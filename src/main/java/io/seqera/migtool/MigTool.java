@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,7 @@ public class MigTool {
     String dialect;
     String locations;
     ClassLoader classLoader;
+    Pattern pattern;
 
     private Connection connection;
     private List<MigRecord> migrationEntries;
@@ -84,6 +86,12 @@ public class MigTool {
 
     public MigTool withClassLoader(ClassLoader loader) {
         this.classLoader = loader;
+        return this;
+    }
+
+    public MigTool withPattern(String pattern) {
+        if(pattern!=null && !pattern.equals(""))
+            this.pattern = Pattern.compile(pattern);
         return this;
     }
 
@@ -193,7 +201,7 @@ public class MigTool {
             Set<String> files = Helper.getResourceFiles(path);
             List<MigRecord> entries = new ArrayList<>(files.size());
             for( String it : files ) {
-                MigRecord entry = MigRecord.parseResourcePath(it);
+                MigRecord entry = MigRecord.parseResourcePath(it, pattern);
                 if( entry==null ) {
                     log.warn("Invalid migration source file: " + it);
                 }

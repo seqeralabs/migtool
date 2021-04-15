@@ -40,6 +40,7 @@ class MigToolTest extends Specification {
         def folder = Files.createTempDirectory('test')
         folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
         folder.resolve('V02__file2.sql').text = 'create table YYY ( col2 varchar(2) ); create table ZZZ ( col3 varchar(3) );'
+        folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
         and:
 
         def tool = new MigTool()
@@ -121,6 +122,32 @@ class MigToolTest extends Specification {
         tool.existTable('ZZZ')
         and:
         !tool.existTable('FOO')
+    }
+
+    def 'should apply class path migration with custom pattern' () {
+        given:
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("classpath:db/mariadb")
+                .withPattern(/v(\d\d)-.+/)
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==1
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'v01-foo.txt'
+            statements == ['create table CUSTOM ( col4 varchar(4) );']
+        }
+        
     }
 
     def 'should apply migration coming from a jar file' () {
