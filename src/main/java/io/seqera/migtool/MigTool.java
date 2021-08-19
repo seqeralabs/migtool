@@ -40,7 +40,7 @@ public class MigTool {
 
     static final String MIGTOOL_TABLE = "MIGTOOL_HISTORY";
 
-    static final String[] DIALECTS = {"h2", "mysql", "mariadb"};
+    static final String[] DIALECTS = {"h2", "mysql", "mariadb", "postgresql"};
 
     String driver;
     String url;
