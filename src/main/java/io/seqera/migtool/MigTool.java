@@ -264,7 +264,7 @@ public class MigTool {
 
     protected void checkRank(MigRecord entry) {
         try(Statement stm = connection.createStatement()) {
-            ResultSet rs = stm.executeQuery("select max(`rank`) from "+MIGTOOL_TABLE);
+            ResultSet rs = stm.executeQuery("select max(rank) from "+MIGTOOL_TABLE);
             int last = rs.next() ? rs.getInt(1) : 0;
             int expected = last+1;
             if( entry.rank != expected) {
@@ -300,7 +300,7 @@ public class MigTool {
         int delta = (int)(System.currentTimeMillis()-now);
 
         // save the current migration
-        final String insertSql = "insert into "+MIGTOOL_TABLE+" (`rank`,`script`,`checksum`,`created_on`,`execution_time`) values (?,?,?,?,?)";
+        final String insertSql = "insert into "+MIGTOOL_TABLE+" (rank, script, checksum, created_on, execution_time) values (?,?,?,?,?)";
         try (PreparedStatement insert = connection.prepareStatement(insertSql)) {
             insert.setInt(1, entry.rank);
             insert.setString(2, entry.script);
@@ -315,7 +315,7 @@ public class MigTool {
     }
 
     protected boolean checkMigrated(MigRecord entry) {
-        String sql = "select `id`, `checksum` from " + MIGTOOL_TABLE + " where `rank` = ?";
+        String sql = "select id, checksum from " + MIGTOOL_TABLE + " where rank = ?";
 
         try (PreparedStatement stm = connection.prepareStatement(sql)) {
             stm.setInt(1, entry.rank);
