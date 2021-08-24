@@ -3,22 +3,22 @@
  */
 package io.seqera.migtool
 
+
 import java.nio.file.Files
+
 import io.seqera.migtool.resources.ClassFromJarWithResources
+import io.seqera.migtool.util.database.DatabaseSpecification
 
-import spock.lang.Specification
-
-class MigToolTest extends Specification {
-
+class MigToolTest extends DatabaseSpecification {
 
     def 'should init migtool' () {
         given:
         def tool = new MigTool()
-            .withDriver('org.h2.Driver')
-            .withDialect('h2')
-            .withUrl('jdbc:h2:mem:test')
-            .withUser('sa')
-            .withPassword('')
+            .withDriver(database.config.driver)
+            .withDialect(database.config.dialect)
+            .withUrl(database.config.url)
+            .withUser(database.config.user)
+            .withPassword(database.config.password)
             .withLocations('classpath:test')
 
         when:
@@ -34,7 +34,6 @@ class MigToolTest extends Specification {
         tool.existTable(MigTool.MIGTOOL_TABLE)
     }
 
-
     def 'should apply local file migration' () {
         given:
         def folder = Files.createTempDirectory('test')
@@ -42,13 +41,13 @@ class MigToolTest extends Specification {
         folder.resolve('V02__file2.sql').text = 'create table YYY ( col2 varchar(2) ); create table ZZZ ( col3 varchar(3) );'
         folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
         and:
-
+        def config = database.getConfig()
         def tool = new MigTool()
-                .withDriver('org.h2.Driver')
-                .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
-                .withUser('sa')
-                .withPassword('')
+                .withDriver(database.config.driver)
+                .withDialect(database.config.dialect)
+                .withUrl(database.config.url)
+                .withUser(database.config.user)
+                .withPassword(database.config.password)
                 .withLocations("file:$folder")
 
         when:
@@ -87,11 +86,11 @@ class MigToolTest extends Specification {
     def 'should apply class path migration' () {
         given:
         def tool = new MigTool()
-                .withDriver('org.h2.Driver')
-                .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
-                .withUser('sa')
-                .withPassword('')
+                .withDriver(database.config.driver)
+                .withDialect(database.config.dialect)
+                .withUrl(database.config.url)
+                .withUser(database.config.user)
+                .withPassword(database.config.password)
                 .withLocations("classpath:db/mariadb")
 
         when:
@@ -127,11 +126,11 @@ class MigToolTest extends Specification {
     def 'should apply class path migration with custom pattern' () {
         given:
         def tool = new MigTool()
-                .withDriver('org.h2.Driver')
-                .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
-                .withUser('sa')
-                .withPassword('')
+                .withDriver(database.config.driver)
+                .withDialect(database.config.dialect)
+                .withUrl(database.config.url)
+                .withUser(database.config.user)
+                .withPassword(database.config.password)
                 .withLocations("classpath:db/mariadb")
                 .withPattern(/v(\d\d)-.+/)
 
@@ -153,11 +152,11 @@ class MigToolTest extends Specification {
     def 'should apply migration coming from a jar file' () {
         given:
         def tool = new MigTool()
-                .withDriver('org.h2.Driver')
-                .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
-                .withUser('sa')
-                .withPassword('')
+                .withDriver(database.config.driver)
+                .withDialect(database.config.dialect)
+                .withUrl(database.config.url)
+                .withUser(database.config.user)
+                .withPassword(database.config.password)
                 .withClassLoader(ClassFromJarWithResources.classLoader)
                 .withLocations("classpath:db/migrations")
 

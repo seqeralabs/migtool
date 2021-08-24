@@ -21,7 +21,6 @@ java {
 }
 
 repositories {
-    jcenter()
     mavenCentral()
 }
 
@@ -29,15 +28,23 @@ dependencies {
     // This dependency is used by the application.
     implementation "ch.qos.logback:logback-classic:1.2.3"
     runtimeOnly 'mysql:mysql-connector-java:8.0.22'
+    runtimeOnly 'org.mariadb.jdbc:mariadb-java-client:2.7.4'
     runtimeOnly 'com.h2database:h2:1.4.200'
 
     // Use the latest Groovy version for Spock testing
-    testImplementation 'org.codehaus.groovy:groovy-all:2.5.12'
-    testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
-    testImplementation 'junit:junit:4.13'
+    testImplementation 'org.codehaus.groovy:groovy-all:3.0.8'
+    testImplementation 'org.spockframework:spock-core:2.0-groovy-3.0'
+    testImplementation "org.testcontainers:testcontainers:1.16.0"
 
     // Dummy library containing some migration files among their resources for testing purposes
     testImplementation files("libs/jar-with-resources.jar")
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
 }
 
 application {
