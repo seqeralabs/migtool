@@ -10,7 +10,7 @@ abstract class DatabaseSpecification extends Specification {
 
     protected static final Database database = DatabaseFactory.database
 
-    void cleanupSpec() {
+    void cleanup() {
         database.cleanup()
     }
 
