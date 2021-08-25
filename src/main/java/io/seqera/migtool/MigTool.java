@@ -41,6 +41,7 @@ public class MigTool {
 
     String driver;
     String url;
+    String schema;
     String user;
     String password;
     String dialect;
@@ -59,6 +60,11 @@ public class MigTool {
 
     public MigTool withUrl(String url) {
         this.url = url;
+        return this;
+    }
+
+    public MigTool withSchema(String schema) {
+        this.schema = schema;
         return this;
     }
 
@@ -149,7 +155,7 @@ public class MigTool {
     }
 
     protected boolean existTable(String tableName) {
-        return executor.existTable(tableName);
+        return executor.existTable(tableName, schema);
     }
 
     /**

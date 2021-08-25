@@ -57,13 +57,13 @@ public class StatementExecutor {
         }
     }
 
-    public boolean existTable(String tableName) {
-        log.debug("Checking existence of table '" + tableName + "'");
+    public boolean existTable(String tableName, String schemaName) {
+        log.debug("Checking existence of table '" + tableName + "'" + "in schema '" + schemaName + "'");
 
         try (Connection conn = connection()) {
             ResultSet res = conn
                     .getMetaData()
-                    .getTables(null,null, tableName, new String[] {"TABLE"});
+                    .getTables(null, schemaName, tableName, new String[] {"TABLE"});
 
             RowSet rows = ResultSetExtractor.extractRows(res);
             StatementResult result = new StatementResult("Table metadata search", res, null);

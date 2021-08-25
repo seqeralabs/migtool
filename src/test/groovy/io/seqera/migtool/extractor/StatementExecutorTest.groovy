@@ -1,10 +1,12 @@
 package io.seqera.migtool.extractor
 
+import io.seqera.migtool.Dialect
 import io.seqera.migtool.exception.ConnectionException
 import io.seqera.migtool.exception.InvalidDriverException
 import io.seqera.migtool.exception.StatementException
 import io.seqera.migtool.executor.StatementExecutor
 import io.seqera.migtool.util.database.DatabaseSpecification
+import io.seqera.migtool.util.database.factory.DatabaseFactory
 
 class StatementExecutorTest extends DatabaseSpecification {
 
@@ -17,10 +19,13 @@ class StatementExecutorTest extends DatabaseSpecification {
         executor.execute("CREATE TABLE ${tableName} ( col1 VARCHAR(1) );")
 
         expect: 'the table exists'
-        executor.existTable(tableName)
+        executor.existTable(tableName, null)
 
         and: 'no other table exist'
-        !executor.existTable('OTHER_TABLE')
+        !executor.existTable('OTHER_TABLE', null)
+
+        and: 'the table exists when specifying the schema'
+        executor.existTable(tableName, schemaName)
     }
 
     void "execute a set of simple statements"() {
@@ -104,6 +109,16 @@ class StatementExecutorTest extends DatabaseSpecification {
     private static StatementExecutor executor() {
         StatementExecutor.loadDriver(database.config.driver)
         return new StatementExecutor(database.config.url, database.config.user, database.config.password)
+    }
+
+    private static getSchemaName() {
+        if (DatabaseFactory.dialectFromEnv == Dialect.h2)
+            return 'PUBLIC'
+
+        String url = database.config.url
+        String lastSection = url.substring(url.lastIndexOf('/') + 1)
+
+        return lastSection
     }
 
 }
