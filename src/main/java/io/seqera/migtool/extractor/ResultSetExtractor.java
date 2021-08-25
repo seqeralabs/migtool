@@ -5,7 +5,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
 /**
- * Extracts arbitrary rows from a {@link ResultSet}.
+ * Extracts the data rows from a {@link ResultSet}.
  */
 public final class ResultSetExtractor {
 

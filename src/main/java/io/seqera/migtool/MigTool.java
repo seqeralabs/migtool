@@ -7,12 +7,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +16,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import io.seqera.migtool.exception.MigToolException;
+import io.seqera.migtool.executor.StatementExecutor;
+import io.seqera.migtool.executor.StatementResult;
+import io.seqera.migtool.extractor.Row;
+import io.seqera.migtool.extractor.RowSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +50,8 @@ public class MigTool {
     ClassLoader classLoader;
     Pattern pattern;
 
-    private Connection connection;
+    private StatementExecutor executor;
+
     private List<MigRecord> migrationEntries;
 
     public MigTool withDriver(String driver) {
@@ -119,10 +119,6 @@ public class MigTool {
         return this;
     }
 
-    protected Connection getConnection() {
-        return connection;
-    }
-
     List<MigRecord> getMigrationEntries() {
         return migrationEntries;
     }
@@ -147,47 +143,27 @@ public class MigTool {
             throw new IllegalStateException("Missing 'locations' attribute");
 
         try {
-            // load driver
-            Class.forName(driver);
-            // connect db
-            connection = DriverManager.getConnection(url, user, password);
-        }
-        catch (ClassNotFoundException e) {
-            throw new IllegalStateException("Unable to find driver class: " + driver, e);
-        }
-        catch (SQLException e) {
-            throw new IllegalStateException("Unable to connect DB instance: " + url, e);
+            StatementExecutor.loadDriver(driver);
+            executor = new StatementExecutor(url, user, password);
+        } catch (MigToolException e) {
+            throw new IllegalStateException("Initialization error occurred", e);
         }
     }
 
     protected boolean existTable(String tableName) {
-        try {
-            ResultSet res = connection
-                    .getMetaData()
-                    .getTables(null,null, tableName, new String[] {"TABLE"});
-            return res.next();
-        }
-        catch (SQLException e) {
-            throw new IllegalStateException("Unable to connect DB", e);
-        }
+        return executor.existTable(tableName);
     }
 
     /**
      * Create the support Migtool DB table if does not exists
      */
     protected void createIfNotExists() {
-        try {
-            if( !existTable(MIGTOOL_TABLE) ) {
-                log.info("Creating MigTool schema using dialect: " + dialect);
-                String schema = Helper.getResourceAsString("/schema/" + dialect + ".sql");
-                try ( Statement stm = connection.createStatement() ) {
-                    stm.execute(schema);
-                }
-            }
-        }
-        catch (SQLException e) {
-            throw new IllegalStateException("Unable to create MigTool schema -- cause: " + e.getMessage(), e);
-        }
+        if (existTable(MIGTOOL_TABLE))
+            return;
+
+        log.info("Creating MigTool schema using dialect: " + dialect);
+        String schema = Helper.getResourceAsString("/schema/" + dialect + ".sql");
+        executor.execute(schema);
     }
 
     /**
@@ -245,39 +221,28 @@ public class MigTool {
      * Apply the migration files
      */
     protected void apply() {
-        if( migrationEntries.size()==0 ) {
+        if (migrationEntries.size() == 0)
             log.info("No DB migrations found");
-        }
 
-        try {
-            connection.setAutoCommit(false);
-            for( MigRecord it : migrationEntries) {
-                applyMigration(it);
-            }
-            connection.commit();
-        }
-        catch (SQLException e) {
-            try { connection.rollback(); } catch (SQLException err) { log.warn("Unable to rollback transaction -- cause: "+e.getMessage()); }
-            throw new IllegalStateException("Unable perform migration -- cause: "+e.getMessage(), e);
-        }
+        for (MigRecord it : migrationEntries)
+            applyMigration(it);
     }
 
     protected void checkRank(MigRecord entry) {
-        try(Statement stm = connection.createStatement()) {
-            ResultSet rs = stm.executeQuery("select max(`rank`) from "+MIGTOOL_TABLE);
-            int last = rs.next() ? rs.getInt(1) : 0;
-            int expected = last+1;
-            if( entry.rank != expected) {
-                throw new IllegalStateException(String.format("Invalid migration -- Expected: %d; current rank: %d; migration script: %s", expected, entry.rank, entry.script));
-            }
-        }
-        catch (SQLException e) {
-            throw new IllegalStateException("Unable perform migration -- cause: "+e.getMessage(), e);
-        }
+        String sql = "select max(rank) from " + MIGTOOL_TABLE;
+
+        StatementResult result = executor.execute(sql);
+        Row firstRow = result.getRowSet().getRows().get(0);
+
+        String value = firstRow.getFirstValue();
+        int last = (value == null) ? 0 : Integer.parseInt(value);
+        int expected = last + 1;
+        if (entry.rank != expected)
+            throw new IllegalStateException(String.format("Invalid migration -- Expected: %d; current rank: %d; migration script: %s", expected, entry.rank, entry.script));
     }
 
-    protected void applyMigration(MigRecord entry) throws SQLException {
-        if( checkMigrated(entry) ) {
+    protected void applyMigration(MigRecord entry) {
+        if (checkMigrated(entry)) {
             log.info("DB migration already applied: {} {}", entry.rank, entry.script);
             return;
         }
@@ -286,57 +251,41 @@ public class MigTool {
 
         log.info("DB migration {} {} ..", entry.rank, entry.script);
 
-        // apply all migration statements
         long now = System.currentTimeMillis();
+        applyStatements(entry.statements);
+        int delta = (int) (System.currentTimeMillis() - now);
 
-        try ( Statement stm = connection.createStatement() ) {
-            for( String it : entry.statements ) {
-                stm.addBatch(it);
-            }
-            stm.executeBatch();
-         }
-
-        // compute the delta
-        int delta = (int)(System.currentTimeMillis()-now);
-
-        // save the current migration
-        final String insertSql = "insert into "+MIGTOOL_TABLE+" (`rank`,`script`,`checksum`,`created_on`,`execution_time`) values (?,?,?,?,?)";
-        try (PreparedStatement insert = connection.prepareStatement(insertSql)) {
-            insert.setInt(1, entry.rank);
-            insert.setString(2, entry.script);
-            insert.setString(3, entry.checksum);
-            insert.setTimestamp(4, new Timestamp(now));
-            insert.setInt(5, delta);
-            insert.executeUpdate();
-        }
-        // just log
+        saveMigration(now, delta, entry);
         log.info("DB migration performed: {} {} - execution time {}ms", entry.rank, entry.script, delta);
-
     }
 
     protected boolean checkMigrated(MigRecord entry) {
-        String sql = "select `id`, `checksum` from " + MIGTOOL_TABLE + " where `rank` = ?";
+        String sql = "select checksum from " + MIGTOOL_TABLE + " where rank = ?";
 
-        try (PreparedStatement stm = connection.prepareStatement(sql)) {
-            stm.setInt(1, entry.rank);
-            ResultSet rs = stm.executeQuery();
-            if( !rs.next() ) {
-                return false;
-            }
-            // otherwise the checksum must match
-            String checksum = rs.getString(2);
-            if( checksum==null || !checksum.equals(entry.checksum) ) {
-                throw new IllegalStateException("Checksum doesn't match for migration with name: " + entry.script) ;
-            }
-            return true;
-        }
-        catch (SQLException e) {
-            throw new IllegalStateException("Unable validate migration -- cause: "+e.getMessage(), e);
-        }
+        StatementResult result = executor.executeParameterized(sql, Collections.singletonList(entry.rank));
+        RowSet rowSet = result.getRowSet();
+
+        if (rowSet.isEmpty())
+            return false;
+
+        // otherwise, the checksum must match
+        Row firstRow = rowSet.getRows().get(0);
+        String checksum = firstRow.getFirstValue();
+
+        if (checksum == null || !checksum.equals(entry.checksum))
+            throw new IllegalStateException("Checksum doesn't match for migration with name: " + entry.script);
+
+        return true;
     }
 
-    public void close() {
-        Helper.tryClose(connection);
+    private void applyStatements(List<String> statements) {
+        for (String it : statements)
+            executor.execute(it);
+    }
+
+    private void saveMigration(long nowMillis, int deltaMillis, MigRecord entry) {
+        final String insertSql = "insert into " + MIGTOOL_TABLE + " (rank, script, checksum, created_on, execution_time) values (?,?,?,?,?)";
+        executor.executeParameterized(insertSql, Arrays.asList(entry.rank, entry.script, entry.checksum, new Timestamp(nowMillis), deltaMillis));
     }
 
 }

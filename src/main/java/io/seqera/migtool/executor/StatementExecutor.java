@@ -1,12 +1,16 @@
-package io.seqera.migtool;
+package io.seqera.migtool.executor;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.List;
 
 import io.seqera.migtool.exception.ConnectionException;
+import io.seqera.migtool.exception.InvalidDriverException;
 import io.seqera.migtool.exception.StatementException;
 import io.seqera.migtool.exception.TableException;
 import io.seqera.migtool.extractor.ResultSetExtractor;
@@ -49,7 +53,7 @@ public class StatementExecutor {
         try {
             driverClass = Class.forName(driver);
         } catch (ClassNotFoundException e) {
-            throw new IllegalArgumentException("Unable to find driver class: " + driver, e);
+            throw new InvalidDriverException(driver, e);
         }
     }
 
@@ -62,7 +66,8 @@ public class StatementExecutor {
                     .getTables(null,null, tableName, new String[] {"TABLE"});
 
             RowSet rows = ResultSetExtractor.extractRows(res);
-            logRows(rows);
+            StatementResult result = new StatementResult("Table metadata search", res, null);
+            log.debug("Result: {}", result);
 
             return !rows.isEmpty();
         } catch (SQLException e) {
@@ -70,11 +75,28 @@ public class StatementExecutor {
         }
     }
 
-    public void execute(String stmText) {
+    public StatementResult execute(String stmText) {
         try (Connection conn = connection(); Statement stm = conn.createStatement() ) {
-            stm.execute(stmText);
 
-            logStatementResult(stm, stmText);
+            stm.execute(stmText);
+            StatementResult result = new StatementResult(stmText, stm.getResultSet(), null);
+            log.debug("Result: {}", result);
+
+            return result;
+        } catch (SQLException e) {
+            throw new StatementException(stmText, e);
+        }
+    }
+
+    public StatementResult executeParameterized(String stmText, List<Object> params) {
+        try (Connection conn = connection(); PreparedStatement stm = conn.prepareStatement(stmText) ) {
+
+            setStatementParams(stm, params);
+            stm.execute();
+            StatementResult result = new StatementResult(stmText, stm.getResultSet(), params);
+            log.debug("Result: {}", result);
+
+            return result;
         } catch (SQLException e) {
             throw new StatementException(stmText, e);
         }
@@ -92,22 +114,15 @@ public class StatementExecutor {
         }
     }
 
-    private void logStatementResult(Statement stm, String text) throws SQLException {
-        if (!log.isDebugEnabled())
-            return;
+    private void setStatementParams(PreparedStatement stm, List<Object> params) throws SQLException {
+        for (int i = 0; i < params.size(); ++i) {
+            Object param = params.get(i);
 
-        ResultSet resultSet = stm.getResultSet();
-        boolean isUpdate = (resultSet == null);
-
-        log.debug("Statement: {}", text);
-        log.debug("Type: {}", isUpdate ? "UPDATE" : "SELECT");
-
-        if (!isUpdate)
-            logRows(ResultSetExtractor.extractRows(resultSet));
-    }
-
-    private void logRows(RowSet rows) {
-        log.debug("Rows: {}", rows);
+            int stmIndex = i + 1;
+            if (param.getClass().equals(String.class)) stm.setString(stmIndex, (String) param);
+            if (param.getClass().equals(Integer.class)) stm.setInt(stmIndex, (Integer) param);
+            if (param.getClass().equals(Timestamp.class)) stm.setTimestamp(stmIndex, (Timestamp) param);
+        }
     }
 
 }

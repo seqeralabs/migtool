@@ -24,8 +24,6 @@ class MigToolTest extends DatabaseSpecification {
         when:
         tool.init()
         then:
-        tool.connection != null
-        and:
         !tool.existTable(MigTool.MIGTOOL_TABLE)
 
         when:

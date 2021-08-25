@@ -1,6 +1,7 @@
 package io.seqera.migtool.extractor;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -12,6 +13,10 @@ public class RowSet {
 
     RowSet() {
         rows = new ArrayList<>();
+    }
+
+    public List<Row> getRows() {
+        return Collections.unmodifiableList(rows);
     }
 
     public boolean isEmpty() {
