@@ -292,4 +292,12 @@ public class MigTool {
         executor.executeParameterized(insertSql, Arrays.asList(entry.rank, entry.script, entry.checksum, new Timestamp(nowMillis), deltaMillis));
     }
 
+    /**
+     * @deprecated There's no need to close the tool (there are no closeable resources anymore)
+     */
+    @Deprecated
+    public void close() {
+
+    }
+
 }

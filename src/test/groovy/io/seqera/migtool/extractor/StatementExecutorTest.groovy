@@ -112,7 +112,7 @@ class StatementExecutorTest extends DatabaseSpecification {
     }
 
     private static getSchemaName() {
-        if (DatabaseFactory.dialectFromEnv == Dialect.h2)
+        if (DatabaseFactory.dialectFromEnv in [null, Dialect.h2])
             return 'PUBLIC'
 
         String url = database.config.url
