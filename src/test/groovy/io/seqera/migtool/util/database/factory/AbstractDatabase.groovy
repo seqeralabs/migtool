@@ -2,11 +2,12 @@ package io.seqera.migtool.util.database.factory
 
 import java.sql.Connection
 import java.sql.DriverManager
-import java.sql.ResultSet
-import java.sql.ResultSetMetaData
 import java.sql.Statement
 
 import groovy.transform.CompileStatic
+import io.seqera.migtool.extractor.ResultSetExtractor
+import io.seqera.migtool.extractor.Row
+import io.seqera.migtool.extractor.RowSet
 import io.seqera.migtool.util.database.DbConfig
 
 @CompileStatic
@@ -16,20 +17,9 @@ abstract class AbstractDatabase implements Database {
         DbConfig config = getConfig()
 
         try ( Connection conn = DriverManager.getConnection(config.url, config.user, config.password) ) {
-
-            def tables = executeStatement(conn, listTablesDDL)
-
-            String disableChecksStatement = getConstraintsCheckDDL(false)
-            executeStatement(conn, disableChecksStatement)
-
-            tables.each { row ->
-                String dropTableStatement = getDropTableDDL(row.values().first())
-                executeStatement(conn, dropTableStatement)
-            }
-
-            String enableChecksStatement = getConstraintsCheckDDL(true)
-            executeStatement(conn, enableChecksStatement)
-
+            disableConstraints(conn)
+            dropAllTables(conn)
+            enableConstraints(conn)
         }
     }
 
@@ -40,37 +30,30 @@ abstract class AbstractDatabase implements Database {
     protected abstract String getListTablesDDL()
     protected abstract String getConstraintsCheckDDL(boolean enable)
 
-    private static List<Map<String, String>> executeStatement(Connection connection, String statement) {
+    private void dropAllTables(Connection conn) {
+        def tables = executeStatement(conn, listTablesDDL)
+        for (Row row : tables.getRows()) {
+            String dropTableStatement = getDropTableDDL(row.getFirstValue())
+            executeStatement(conn, dropTableStatement)
+        }
+    }
+
+    private void disableConstraints(Connection conn) {
+        String disableChecksStatement = getConstraintsCheckDDL(false)
+        executeStatement(conn, disableChecksStatement)
+    }
+
+    private void enableConstraints(Connection conn) {
+        String enableChecksStatement = getConstraintsCheckDDL(true)
+        executeStatement(conn, enableChecksStatement)
+    }
+
+    private static RowSet executeStatement(Connection connection, String statement) {
         try (Statement stm = connection.createStatement() ) {
             stm.execute(statement)
 
-            return extractResultSet(stm.resultSet)
+            return ResultSetExtractor.extractRows(stm.resultSet)
         }
-    }
-
-    private static List<Map<String, String>> extractResultSet(ResultSet resultSet) {
-        if (!resultSet)
-            return []
-
-        List<Map<String, String>> rows = []
-        while (resultSet.next())
-            rows << extractRow(resultSet)
-
-        return rows
-    }
-
-    private static Map<String, String> extractRow(ResultSet resultSet) {
-        ResultSetMetaData metadata = resultSet.metaData
-
-        Map<String, String> row = [:]
-        for (int i = 1; i <= metadata.columnCount; ++i) {
-            String key = metadata.getColumnName(i)
-            String value = resultSet.getString(i)
-
-            row[key] = value
-        }
-
-        return row
     }
 
 }

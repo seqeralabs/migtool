@@ -2,29 +2,28 @@ package io.seqera.migtool.util.database.factory
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import io.seqera.migtool.Dialect
 
 @Slf4j
 @CompileStatic
 final class DatabaseFactory {
 
-    private enum DatabaseType { mysql, mariadb, postgres, h2 }
-
     private DatabaseFactory() {}
 
     static Database getDatabase() {
-        String db = System.getenv('MIGTOOL_DB') ?: 'h2'
-        DatabaseType databaseType = determineDatabaseType(db)
+        String db = getDBFromEnv()
+        Dialect dialect = Dialect.getByString(db)
 
-        if (databaseType == DatabaseType.h2) return new H2Database()
-        if (databaseType == DatabaseType.mysql) return new MySqlDatabase('5.6')
-        if (databaseType == DatabaseType.mariadb) return new MariaDbDatabase()
+        if (dialect == Dialect.h2) return new H2Database()
+        if (dialect == Dialect.mysql) return new MySqlDatabase('5.6')
+        if (dialect == Dialect.mariadb) return new MariaDbDatabase()
 
-        log.info("Unknown DB type: '${db}'")
+        log.info("Unknown DB type: '${db}'. Defaulting to '${Dialect.h2}'")
         return new H2Database()
     }
 
-    private static DatabaseType determineDatabaseType(String db) {
-        return DatabaseType.values().find { it.toString() == db }
+    private static String getDBFromEnv() {
+        return System.getenv('MIGTOOL_DB')
     }
 
 }

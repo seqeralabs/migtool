@@ -188,4 +188,20 @@ class MigToolTest extends DatabaseSpecification {
         !tool.existTable('FOO')
     }
 
+    def 'try to init a migtool with an non-allowed dialect' () {
+        given:
+        def tool = new MigTool()
+                .withDriver(database.config.driver)
+                .withUrl(database.config.url)
+                .withUser(database.config.user)
+                .withPassword(database.config.password)
+                .withLocations('classpath:test')
+                .withDialect('wrong')
+
+        when:
+        tool.init()
+        then:
+        thrown(IllegalStateException)
+    }
+
 }

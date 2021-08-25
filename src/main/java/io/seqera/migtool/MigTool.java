@@ -39,8 +39,6 @@ public class MigTool {
 
     static final String MIGTOOL_TABLE = "MIGTOOL_HISTORY";
 
-    static final String[] DIALECTS = {"h2", "mysql", "mariadb"};
-
     String driver;
     String url;
     String user;
@@ -137,7 +135,7 @@ public class MigTool {
             throw new IllegalStateException("Missing 'user' attribute");
         if( password==null )
             throw new IllegalStateException("Missing 'password' attribute");
-        if( !Arrays.asList(DIALECTS).contains(dialect) )
+        if( Dialect.getByString(dialect) == null )
             throw new IllegalStateException("Unsupported dialect: " + dialect);
         if( locations==null )
             throw new IllegalStateException("Missing 'locations' attribute");
