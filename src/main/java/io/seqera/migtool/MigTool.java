@@ -141,6 +141,7 @@ public class MigTool {
             throw new IllegalStateException("Missing 'locations' attribute");
 
         try {
+            log.info("Using dialect '" + dialect + "' and driver '" + driver + "'");
             StatementExecutor.loadDriver(driver);
             executor = new StatementExecutor(url, user, password);
         } catch (MigToolException e) {
@@ -159,7 +160,7 @@ public class MigTool {
         if (existTable(MIGTOOL_TABLE))
             return;
 
-        log.info("Creating MigTool schema using dialect: " + dialect);
+        log.info("Creating MigTool schema");
         String schema = Helper.getResourceAsString("/schema/" + dialect + ".sql");
         executor.execute(schema);
     }

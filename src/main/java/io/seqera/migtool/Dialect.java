@@ -10,7 +10,7 @@ import static java.util.stream.Collectors.toMap;
  */
 public enum Dialect {
 
-    h2, mysql, mariadb;
+    h2, mysql, mariadb, postgresql;
 
     private static final Map<String, Dialect> valuesByString = Stream.of(values()).collect(toMap(Object::toString, e -> e));
 

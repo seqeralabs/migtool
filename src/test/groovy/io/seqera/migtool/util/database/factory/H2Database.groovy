@@ -1,6 +1,7 @@
 package io.seqera.migtool.util.database.factory
 
 import groovy.transform.Memoized
+import io.seqera.migtool.Dialect
 import io.seqera.migtool.util.database.DbConfig
 
 class H2Database extends AbstractDatabase {
@@ -19,7 +20,7 @@ class H2Database extends AbstractDatabase {
                 user,
                 password,
                 'org.h2.Driver',
-                'h2'
+                Dialect.h2
         )
     }
 

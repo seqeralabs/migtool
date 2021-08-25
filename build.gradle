@@ -26,9 +26,10 @@ repositories {
 
 dependencies {
     // This dependency is used by the application.
-    implementation "ch.qos.logback:logback-classic:1.2.3"
-    runtimeOnly 'mysql:mysql-connector-java:8.0.22'
+    implementation 'ch.qos.logback:logback-classic:1.2.5'
+    runtimeOnly 'mysql:mysql-connector-java:8.0.25'
     runtimeOnly 'org.mariadb.jdbc:mariadb-java-client:2.7.4'
+    runtimeOnly 'org.postgresql:postgresql:42.2.23'
     runtimeOnly 'com.h2database:h2:1.4.200'
 
     // Use the latest Groovy version for Spock testing

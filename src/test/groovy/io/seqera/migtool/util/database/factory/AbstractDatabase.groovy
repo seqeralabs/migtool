@@ -40,12 +40,12 @@ abstract class AbstractDatabase implements Database {
 
     private void disableConstraints(Connection conn) {
         String disableChecksStatement = getConstraintsCheckDDL(false)
-        executeStatement(conn, disableChecksStatement)
+        if (disableChecksStatement) executeStatement(conn, disableChecksStatement)
     }
 
     private void enableConstraints(Connection conn) {
         String enableChecksStatement = getConstraintsCheckDDL(true)
-        executeStatement(conn, enableChecksStatement)
+        if (enableChecksStatement) executeStatement(conn, enableChecksStatement)
     }
 
     private static RowSet executeStatement(Connection connection, String statement) {

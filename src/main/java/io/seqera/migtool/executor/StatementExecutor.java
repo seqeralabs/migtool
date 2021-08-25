@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Locale;
 
 import io.seqera.migtool.exception.ConnectionException;
 import io.seqera.migtool.exception.InvalidDriverException;
@@ -60,21 +61,17 @@ public class StatementExecutor {
     }
 
     public boolean existTable(String tableName) {
-        log.debug("Checking existence of table '" + tableName + "'" + "in schema '" + schema + "'");
 
-        try (Connection conn = connection()) {
-            ResultSet res = conn
-                    .getMetaData()
-                    .getTables(null, schema, tableName, new String[] {"TABLE"});
+        boolean exists = doTableExistenceCheck(tableName);
 
-            RowSet rows = ResultSetExtractor.extractRows(res);
-            StatementResult result = new StatementResult("Table metadata search", res, null);
-            log.debug("Result: {}", result);
-
-            return !rows.isEmpty();
-        } catch (SQLException e) {
-            throw new TableException(tableName, e);
+        if (!exists) {
+            // PostgreSQL stores table names as lower case by default. Retry with the lower case name
+            log.debug("Not found. Checking with lower case name");
+            String lowerTableName = tableName.toLowerCase(Locale.ROOT);
+            exists = doTableExistenceCheck(lowerTableName);
         }
+
+        return exists;
     }
 
     public StatementResult execute(String stmText) {
@@ -116,8 +113,26 @@ public class StatementExecutor {
             // MySQL provides the database name in {@link Connection#getCatalog} instead of {@link Connection#getSchema}:
             // https://stackoverflow.com/a/24786080
             schema = (conn.getSchema() == null) ? conn.getCatalog() : conn.getSchema();
+            log.info("Detected schema: '" + schema + "'");
         } catch (SQLException e) {
             throw new ConnectionException(url, e);
+        }
+    }
+
+    private boolean doTableExistenceCheck(String tableName) {
+        log.debug("Checking existence of table '" + tableName + "'" + " in schema '" + schema + "'");
+        try (Connection conn = connection()) {
+            ResultSet res = conn
+                    .getMetaData()
+                    .getTables(null, schema, tableName, new String[] {"TABLE"});
+
+            RowSet rows = ResultSetExtractor.extractRows(res);
+            StatementResult result = new StatementResult("Table metadata search", res, null);
+            log.debug("Result: {}", result);
+
+            return !rows.isEmpty();
+        } catch (SQLException e) {
+            throw new TableException(tableName, e);
         }
     }
 

@@ -1,5 +1,6 @@
 package io.seqera.migtool.util.database.factory
 
+import io.seqera.migtool.Dialect
 import io.seqera.migtool.util.database.DbConfig
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
@@ -49,7 +50,7 @@ class MariaDbDatabase extends ContainerizedDatabase {
                 user,
                 password,
                 'org.mariadb.jdbc.Driver',
-                'mariadb'
+                Dialect.mariadb
         )
     }
 }

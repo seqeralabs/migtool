@@ -1,5 +1,6 @@
 package io.seqera.migtool.extractor
 
+
 import io.seqera.migtool.Dialect
 import io.seqera.migtool.exception.ConnectionException
 import io.seqera.migtool.exception.InvalidDriverException

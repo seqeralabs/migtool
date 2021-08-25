@@ -16,6 +16,7 @@ final class DatabaseFactory {
         if (dialect == Dialect.h2) return new H2Database()
         if (dialect == Dialect.mysql) return new MySqlDatabase('5.6')
         if (dialect == Dialect.mariadb) return new MariaDbDatabase()
+        if (dialect == Dialect.postgresql) return new PostgreSqlDatabase()
 
         log.info("Unknown DB type: '${rawDbFromEnv}'. Defaulting to '${Dialect.h2}'")
         return new H2Database()

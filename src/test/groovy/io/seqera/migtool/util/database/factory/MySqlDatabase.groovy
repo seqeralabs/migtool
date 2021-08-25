@@ -1,5 +1,6 @@
 package io.seqera.migtool.util.database.factory
 
+import io.seqera.migtool.Dialect
 import io.seqera.migtool.util.database.DbConfig
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
@@ -50,7 +51,7 @@ class MySqlDatabase extends ContainerizedDatabase {
                 user,
                 password,
                 'com.mysql.cj.jdbc.Driver',
-                'mysql'
+                Dialect.mysql
         )
     }
 
