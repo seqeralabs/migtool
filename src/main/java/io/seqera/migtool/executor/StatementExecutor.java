@@ -30,6 +30,8 @@ public class StatementExecutor {
     private final String user;
     private final String password;
 
+    private String schema;
+
 
     public StatementExecutor(String url, String user, String password) {
         if (driverClass == null)
@@ -39,7 +41,7 @@ public class StatementExecutor {
         this.user = user;
         this.password = password;
 
-        testConnection();
+        retrieveSchema();
     }
 
     /**
@@ -57,13 +59,13 @@ public class StatementExecutor {
         }
     }
 
-    public boolean existTable(String tableName, String schemaName) {
-        log.debug("Checking existence of table '" + tableName + "'" + "in schema '" + schemaName + "'");
+    public boolean existTable(String tableName) {
+        log.debug("Checking existence of table '" + tableName + "'" + "in schema '" + schema + "'");
 
         try (Connection conn = connection()) {
             ResultSet res = conn
                     .getMetaData()
-                    .getTables(null, schemaName, tableName, new String[] {"TABLE"});
+                    .getTables(null, schema, tableName, new String[] {"TABLE"});
 
             RowSet rows = ResultSetExtractor.extractRows(res);
             StatementResult result = new StatementResult("Table metadata search", res, null);
@@ -106,9 +108,14 @@ public class StatementExecutor {
         return DriverManager.getConnection(url, user, password);
     }
 
-    private void testConnection() {
+    private void retrieveSchema() {
+        log.debug("Connecting to: {}", url);
         try (Connection conn = connection()) {
-            log.debug("Checking DB connection: " + url);
+            log.debug("Retrieving schema name");
+
+            // MySQL provides the database name in {@link Connection#getCatalog} instead of {@link Connection#getSchema}:
+            // https://stackoverflow.com/a/24786080
+            schema = (conn.getSchema() == null) ? conn.getCatalog() : conn.getSchema();
         } catch (SQLException e) {
             throw new ConnectionException(url, e);
         }

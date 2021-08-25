@@ -19,13 +19,10 @@ class StatementExecutorTest extends DatabaseSpecification {
         executor.execute("CREATE TABLE ${tableName} ( col1 VARCHAR(1) );")
 
         expect: 'the table exists'
-        executor.existTable(tableName, null)
+        executor.existTable(tableName)
 
         and: 'no other table exist'
-        !executor.existTable('OTHER_TABLE', null)
-
-        and: 'the table exists when specifying the schema'
-        executor.existTable(tableName, schemaName)
+        !executor.existTable('OTHER_TABLE')
     }
 
     void "execute a set of simple statements"() {
