@@ -48,6 +48,12 @@ jobs:
         env:
           MIGTOOL_DB: mariadb
 
+      - name: Tests PostgreSQL
+        if: "( contains(github.event.head_commit.message, '[release]') || contains(github.event.head_commit.message, '[test all]') )"
+        run: ./gradlew check
+        env:
+          MIGTOOL_DB: postgresql
+
       - name: Release
         if: "contains(github.event.head_commit.message, '[release]')"
         run: ./gradlew publish
