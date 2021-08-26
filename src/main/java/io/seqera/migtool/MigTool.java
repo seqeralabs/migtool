@@ -36,6 +36,9 @@ public class MigTool {
     static private final String SOURCE_CLASSPATH = "classpath:";
     static private final String SOURCE_FILE = "file:";
 
+    public static int BACK_OFF_BASE = 3;
+    public static int BACK_OFF_DELAY = 250;
+
     private static final Logger log = LoggerFactory.getLogger(MigTool.class);
 
     static final String MIGTOOL_TABLE = "MIGTOOL_HISTORY";
@@ -50,8 +53,9 @@ public class MigTool {
     String locations;
     ClassLoader classLoader;
     Pattern pattern;
+    String schema;
+    String catalog;
 
-    private Connection connection;
     private List<MigRecord> migrationEntries;
 
     public MigTool withDriver(String driver) {
@@ -119,8 +123,25 @@ public class MigTool {
         return this;
     }
 
-    protected Connection getConnection() {
-        return connection;
+    protected Connection getConnection() throws SQLException {
+        return getConnection(0);
+    }
+
+    protected Connection getConnection(int maxRetries) throws SQLException {
+        int errorCount=0;
+        while( true ) {
+            try {
+                return DriverManager.getConnection(url, user, password);
+            }
+            catch (SQLException e) {
+                if( errorCount++ >= maxRetries )
+                    throw e;
+
+                long delay = Math.round(Math.pow(BACK_OFF_BASE, errorCount)) * BACK_OFF_DELAY;
+                log.debug("Got connection error={} - Waiting {}ms and retry (errorCount={})", e, delay, errorCount);
+                try {Thread.sleep(delay);} catch (InterruptedException t) { log.debug("Got InterruptedException: {} - Ignoring it",e.getMessage()); }
+            }
+        }
     }
 
     List<MigRecord> getMigrationEntries() {
@@ -149,38 +170,46 @@ public class MigTool {
         try {
             // load driver
             Class.forName(driver);
-            // connect db
-            connection = DriverManager.getConnection(url, user, password);
         }
         catch (ClassNotFoundException e) {
             throw new IllegalStateException("Unable to find driver class: " + driver, e);
+        }
+
+        try( Connection conn = getConnection() ) {
+            // retrieve the database schema
+            if( schema==null || schema.isEmpty() ) {
+                schema = conn.getSchema();
+            }
+            if( catalog==null || catalog.isEmpty() ) {
+                catalog = conn.getCatalog();
+            }
+            if ( catalog==null && schema==null ) {
+                log.warn("Unable to determine current DB catalog and schema attributes");
+            }
         }
         catch (SQLException e) {
             throw new IllegalStateException("Unable to connect DB instance: " + url, e);
         }
     }
 
-    protected boolean existTable(String tableName) {
-        try {
-            ResultSet res = connection
-                    .getMetaData()
-                    .getTables(null,null, tableName, new String[] {"TABLE"});
-            return res.next();
-        }
-        catch (SQLException e) {
-            throw new IllegalStateException("Unable to connect DB", e);
-        }
+    protected boolean existTable(Connection connection, String tableName) throws SQLException {
+        ResultSet res = connection
+                .getMetaData()
+                .getTables(catalog, schema, tableName, new String[] {"TABLE"});
+        boolean result = res.next();
+        log.debug("Checking existence of DB table={}; catalog={}; schema={}; exist={}", tableName, catalog, schema, result);
+        return result;
     }
 
     /**
      * Create the support Migtool DB table if does not exists
      */
     protected void createIfNotExists() {
-        try {
-            if( !existTable(MIGTOOL_TABLE) ) {
+        try (Connection conn = getConnection()) {
+            if( !existTable(conn, MIGTOOL_TABLE) ) {
                 log.info("Creating MigTool schema using dialect: " + dialect);
                 String schema = Helper.getResourceAsString("/schema/" + dialect + ".sql");
-                try ( Statement stm = connection.createStatement() ) {
+                try ( Statement stm = conn.createStatement() ) {
                     stm.execute(schema);
                 }
             }
@@ -250,20 +279,17 @@ public class MigTool {
         }
 
         try {
-            connection.setAutoCommit(false);
             for( MigRecord it : migrationEntries) {
                 applyMigration(it);
             }
-            connection.commit();
         }
         catch (SQLException e) {
-            try { connection.rollback(); } catch (SQLException err) { log.warn("Unable to rollback transaction -- cause: "+e.getMessage()); }
             throw new IllegalStateException("Unable perform migration -- cause: "+e.getMessage(), e);
         }
     }
 
     protected void checkRank(MigRecord entry) {
-        try(Statement stm = connection.createStatement()) {
+        try(Connection conn=getConnection(); Statement stm = conn.createStatement()) {
             ResultSet rs = stm.executeQuery("select max(`rank`) from "+MIGTOOL_TABLE);
             int last = rs.next() ? rs.getInt(1) : 0;
             int expected = last+1;
@@ -275,6 +301,7 @@ public class MigTool {
             throw new IllegalStateException("Unable perform migration -- cause: "+e.getMessage(), e);
         }
     }
+
 
     protected void applyMigration(MigRecord entry) throws SQLException {
         if( checkMigrated(entry) ) {
@@ -288,20 +315,22 @@ public class MigTool {
 
         // apply all migration statements
         long now = System.currentTimeMillis();
-
-        try ( Statement stm = connection.createStatement() ) {
-            for( String it : entry.statements ) {
-                stm.addBatch(it);
+        for( String it : entry.statements ) {
+            try (Connection conn = getConnection(5); Statement stm=conn.createStatement()) {
+                stm.execute(it);
+                log.debug("- Applied migration: {}", it);
             }
-            stm.executeBatch();
-         }
+            catch (SQLException e) {
+                throw new IllegalStateException("MIGRATION FAILED - PLEASE RECOVER THE DATABASE FROM THE LAST BACKUP - Offending statement: "+it, e);
+            }
+        }
 
         // compute the delta
         int delta = (int)(System.currentTimeMillis()-now);
 
         // save the current migration
         final String insertSql = "insert into "+MIGTOOL_TABLE+" (`rank`,`script`,`checksum`,`created_on`,`execution_time`) values (?,?,?,?,?)";
-        try (PreparedStatement insert = connection.prepareStatement(insertSql)) {
+        try (Connection conn=getConnection(); PreparedStatement insert = conn.prepareStatement(insertSql)) {
             insert.setInt(1, entry.rank);
             insert.setString(2, entry.script);
             insert.setString(3, entry.checksum);
@@ -317,7 +346,7 @@ public class MigTool {
     protected boolean checkMigrated(MigRecord entry) {
         String sql = "select `id`, `checksum` from " + MIGTOOL_TABLE + " where `rank` = ?";
 
-        try (PreparedStatement stm = connection.prepareStatement(sql)) {
+        try (Connection conn=getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
             stm.setInt(1, entry.rank);
             ResultSet rs = stm.executeQuery();
             if( !rs.next() ) {
@@ -333,10 +362,6 @@ public class MigTool {
         catch (SQLException e) {
             throw new IllegalStateException("Unable validate migration -- cause: "+e.getMessage(), e);
         }
-    }
-
-    public void close() {
-        Helper.tryClose(connection);
     }
 
 }
