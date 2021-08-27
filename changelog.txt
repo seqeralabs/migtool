@@ -1,5 +1,8 @@
 NEXTFLOW CHANGE-LOG
 ===================
+1.0.3 - 27 Aug 2021
+- Fix resultset dump while checking migration table 
+
 1.0.2 - 27 Aug 2021
 - Fix migration table existance check on foreign schema
 - Use use single connection for statement
