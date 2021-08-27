@@ -342,12 +342,15 @@ public class MigTool {
         // apply all migration statements
         long now = System.currentTimeMillis();
         for( String it : entry.statements ) {
+            final long ts = System.currentTimeMillis();
             try (Connection conn = getConnection(5); Statement stm=conn.createStatement()) {
                 stm.execute(it);
-                log.debug("- Applied migration: {}", it);
+                log.debug("- Applied migration: {}; elapsed time: {}ms", it, System.currentTimeMillis()-ts);
             }
             catch (SQLException e) {
-                throw new IllegalStateException("MIGRATION FAILED - PLEASE RECOVER THE DATABASE FROM THE LAST BACKUP - Offending statement: "+it, e);
+                long delta = System.currentTimeMillis()-ts;
+                String msg = "MIGRATION FAILED - PLEASE RECOVER THE DATABASE FROM THE LAST BACKUP - Offending statement: "+it+" elapsed time: "+(delta)+"ms";
+                throw new IllegalStateException(msg, e);
             }
         }
 
