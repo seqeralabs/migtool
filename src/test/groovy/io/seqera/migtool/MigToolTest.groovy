@@ -16,7 +16,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
             .withDriver('org.h2.Driver')
             .withDialect('h2')
-            .withUrl('jdbc:h2:mem:test')
+            .withUrl('jdbc:h2:mem:test;DB_CLOSE_DELAY=-1') // use DB_CLOSE_DELAY to avoid losing data when the jdbc connection is close
             .withUser('sa')
             .withPassword('')
             .withLocations('classpath:test')
@@ -24,14 +24,21 @@ class MigToolTest extends Specification {
         when:
         tool.init()
         then:
-        tool.connection != null
+        tool.schema == 'PUBLIC'
+        tool.catalog == 'TEST'
         and:
-        !tool.existTable(MigTool.MIGTOOL_TABLE)
+        def conn = tool.getConnection()
+        conn != null
+        and:
+        !tool.existTable(conn, MigTool.MIGTOOL_TABLE)
 
         when:
         tool.createIfNotExists()
         then:
-        tool.existTable(MigTool.MIGTOOL_TABLE)
+        tool.existTable(conn, MigTool.MIGTOOL_TABLE)
+
+        cleanup:
+        conn?.close()
     }
 
 
@@ -74,13 +81,17 @@ class MigToolTest extends Specification {
         tool.createIfNotExists()
         tool.apply()
         then:
-        tool.existTable('XXX')
-        tool.existTable('YYY')
-        tool.existTable('ZZZ')
+        def conn = tool.getConnection()
+        conn != null
         and:
-        !tool.existTable('FOO')
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        and:
+        !tool.existTable(conn, 'FOO')
 
         cleanup:
+        conn?.close()
         folder?.deleteDir()
     }
 
@@ -117,11 +128,17 @@ class MigToolTest extends Specification {
         tool.createIfNotExists()
         tool.apply()
         then:
-        tool.existTable('XXX')
-        tool.existTable('YYY')
-        tool.existTable('ZZZ')
+        def conn = tool.getConnection()
+        conn != null
         and:
-        !tool.existTable('FOO')
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        and:
+        !tool.existTable(conn, 'FOO')
+
+        cleanup:
+        conn?.close()
     }
 
     def 'should apply class path migration with custom pattern' () {
@@ -184,11 +201,17 @@ class MigToolTest extends Specification {
         tool.createIfNotExists()
         tool.apply()
         then:
-        tool.existTable('XXX')
-        tool.existTable('YYY')
-        tool.existTable('ZZZ')
+        def conn = tool.getConnection()
+        conn != null
         and:
-        !tool.existTable('FOO')
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        and:
+        !tool.existTable(conn, 'FOO')
+
+        cleanup:
+        conn?.close()
     }
 
 }
