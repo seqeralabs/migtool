@@ -197,8 +197,34 @@ public class MigTool {
                 .getMetaData()
                 .getTables(catalog, schema, tableName, new String[] {"TABLE"});
         boolean result = res.next();
-        log.debug("Checking existence of DB table={}; catalog={}; schema={}; exist={}", tableName, catalog, schema, result);
+        log.debug("Checking existence of DB table={}; catalog={}; schema={}; exist={} rs={}", tableName, catalog, schema, result, dumpResultSet(result, res));
         return result;
+    }
+
+    protected String dumpResultSet(boolean hasData, ResultSet rs)  {
+        if( !hasData )
+            return "n/a";
+
+        StringBuilder result = new StringBuilder();
+        try {
+            int i=0;
+            do {
+                i++;
+                result.append( "{row"+i+":");
+                result.append( String.valueOf(rs.getObject("TABLE_CATALOG")) );
+                result.append(",");
+                result.append( String.valueOf(rs.getObject("TABLE_SCHEMA")) );
+                result.append(",");
+                result.append( String.valueOf(rs.getObject("TABLE_NAME")) );
+                result.append("}; ");
+            } while( rs.next() );
+            
+            return result.toString();
+        }
+        catch (Exception e) {
+            log.warn("Unable to dump result set", e);
+            return null;
+        }
     }
 
     /**
