@@ -206,17 +206,25 @@ public class MigTool {
             return "n/a";
 
         StringBuilder result = new StringBuilder();
+
         try {
-            int i=0;
+            result.append( "{cols:");
+            final int cols=rs.getMetaData().getColumnCount();
+            for( int i=1; i<=cols; i++ ) {
+                if( i>1 ) result.append(",");
+                result.append( String.valueOf(rs.getMetaData().getColumnName(i)) );
+            }
+            result.append( "}; ");
+
+            int row=0;
             do {
-                i++;
-                result.append( "{row"+i+":");
-                result.append( String.valueOf(rs.getObject("TABLE_CATALOG")) );
-                result.append(",");
-                result.append( String.valueOf(rs.getObject("TABLE_SCHEMA")) );
-                result.append(",");
-                result.append( String.valueOf(rs.getObject("TABLE_NAME")) );
-                result.append("}; ");
+                row++;
+                result.append( "{row"+row+":");
+                for( int i=1; i<=cols; i++ ) {
+                    if( i>1 ) result.append(",");
+                    result.append( String.valueOf(rs.getObject(i)).replaceAll("\n"," ") );
+                }
+                result.append( "}; ");
             } while( rs.next() );
             
             return result.toString();
@@ -345,7 +353,7 @@ public class MigTool {
             final long ts = System.currentTimeMillis();
             try (Connection conn = getConnection(5); Statement stm=conn.createStatement()) {
                 stm.execute(it);
-                log.debug("- Applied migration: {}; elapsed time: {}ms", it, System.currentTimeMillis()-ts);
+                log.debug("- Applied migration: {} elapsed time: {}ms", it, System.currentTimeMillis()-ts);
             }
             catch (SQLException e) {
                 long delta = System.currentTimeMillis()-ts;
