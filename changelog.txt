@@ -1,0 +1,12 @@
+NEXTFLOW CHANGE-LOG
+===================
+1.0.2 - 27 Aug 2021
+- Fix migration table existance check on foreign schema
+- Use use single connection for statement
+- Improve exection/error logging 
+
+1.0.1 - 15 Apr 2021
+- Add support for migration files name custom pattern
+
+1.0.0 - 28 Dec 2020
+- First release 
