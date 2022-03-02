@@ -1,0 +1,16 @@
+{
+  "resources":{
+  "includes":[
+    {
+      "pattern":"\\Qschema/h2.sql\\E"
+    }, 
+    {
+      "pattern":"\\Qschema/mariadb.sql\\E"
+    }, 
+    {
+      "pattern":"\\Qschema/mysql.sql\\E"
+    }
+  ]},
+  "bundles":[
+  ]
+}
