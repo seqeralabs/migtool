@@ -7,21 +7,19 @@
  */
 
 plugins {
-    id 'groovy'
     id 'application'
-    id 'maven-publish'
+    id 'org.graalvm.buildtools.native' version '0.9.10'
 }
 
 version = '1.0.3'
 group = 'io.seqera'
 
 java {
-    sourceCompatibility = JavaVersion.toVersion('1.8')
-    targetCompatibility = JavaVersion.toVersion('1.8')
+    sourceCompatibility = JavaVersion.toVersion('11')
+    targetCompatibility = JavaVersion.toVersion('11')
 }
 
 repositories {
-    jcenter()
     mavenCentral()
 }
 
@@ -43,6 +41,7 @@ dependencies {
 application {
     // Define the main class for the application.
     mainClass = 'io.seqera.migtool.App'
+    applicationDefaultJvmArgs = ["-agentlib:native-image-agent=config-merge-dir=conf/"]
 }
 
 ext.aws_access_key_id = project.findProperty('aws_access_key_id') ?: System.getenv('AWS_ACCESS_KEY_ID')
@@ -50,23 +49,24 @@ ext.aws_secret_access_key = project.findProperty('aws_secret_access_key') ?: Sys
 ext.publishRepoUrl = project.findProperty('publish_repo_url') ?: System.getenv('PUBLISH_REPO_URL') ?: ( version.endsWith('-SNAPSHOT') ? "s3://maven.seqera.io/snapshots" : "s3://maven.seqera.io/releases" )
 
 jar {
-    from sourceSets.main.allSource
+    //from sourceSets.main.allSource
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-        }
-    }
-    repositories {
-        maven {
-            url = publishRepoUrl
-            credentials(AwsCredentials) {
-                // keys are defined in the `gradle.properties` file
-                accessKey aws_access_key_id
-                secretKey aws_secret_access_key
-            }
+graalvmNative {
+    binaries {
+        main {
+            imageName = 'migtool'
+            mainClass = 'io.seqera.migtool.App'
+            configurationFileDirectories.from(file('conf'))
+
+            buildArgs(org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isLinux() ? ['--static', ] : [])
+            buildArgs.add('--allow-incomplete-classpath')
+            buildArgs.add('--report-unsupported-elements-at-runtime')
+            buildArgs.add('-H:+AddAllCharsets')
+            buildArgs.add('-H:EnableURLProtocols=https,http')
+            buildArgs.add('-H:+ReportExceptionStackTraces')
+            buildArgs.add('-H:-CheckToolchain')
+
         }
     }
 }

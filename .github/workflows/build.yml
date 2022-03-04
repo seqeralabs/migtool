@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    name: Tower build
+    name: Migtool build
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
     runs-on: ubuntu-latest
     timeout-minutes: 90
@@ -27,18 +27,64 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup Java
-        uses: actions/setup-java@v1
+      - name: Setup Graalvm
+        uses: graalvm/setup-graalvm@v1
         with:
+          version: '21.3.0'
           java-version: '11'
-          architecture: x64
+          components: 'native-image'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install native-image component
+        run: gu install native-image
 
       - name: Tests
         run: ./gradlew check
 
-      - name: Release
-        if: "contains(github.event.head_commit.message, '[release]')"
-        run: ./gradlew publish
+      - name: Tests reports
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: linux-test-reports
+          path: build/reports/tests/test/
+
+      - name: Build Native Image
+        run: ./gradlew nativeCompile
+
+      - name: Upload linux native image artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: migtool_linux
+          path: build/native/nativeCompile/migtool
+
+  release:
+    name: Release
+    if: "contains(github.event.head_commit.message, '[release]') && github.event.ref=='refs/heads/master'"
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v2
+
+      - name: Setup Java for JReleaser
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - name: Version
+        id: version
+        run: |
+          VERSION=$(cat ./VERSION)
+          echo "VERSION = $VERSION"
+          echo "::set-output name=VERSION::$VERSION"
+
+      - name: Run JReleaser
+        uses: jreleaser/release-action@v1
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.TOWER_CI_AWS_ACCESS }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.TOWER_CI_AWS_SECRET }}
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JRELEASER_PROJECT_VERSION: ${{ steps.version.outputs.VERSION }}
