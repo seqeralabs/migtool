@@ -15,8 +15,9 @@ version = '1.0.3'
 group = 'io.seqera'
 
 java {
-    sourceCompatibility = JavaVersion.toVersion('11')
-    targetCompatibility = JavaVersion.toVersion('11')
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(11)
+    }
 }
 
 repositories {
