@@ -28,9 +28,7 @@ class MysqlTest extends Specification {
                 '-u', container.username,
                 '-p', container.password,
                 '--url', container.jdbcUrl,
-                '--driver', 'com.mysql.cj.jdbc.Driver',
-                '--dialect', 'mysql',
-                '--locations', 'file:src/test/resources/migrate-db/mysql' ]
+                '--location', 'file:src/test/resources/migrate-db/mysql' ]
 
         when:
         println "Running: ${CLI.join( )}"

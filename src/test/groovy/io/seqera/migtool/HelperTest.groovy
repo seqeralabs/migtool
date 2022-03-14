@@ -34,4 +34,17 @@ class HelperTest extends Specification {
         Helper.computeSha256('Hola mundo' ) == 'ca8f60b2cc7f05837d98b208b57fb6481553fc5f1219d59618fd025002a66f5c'
     }
 
+    def 'should parse dialect from url' () {
+        expect:
+        Helper.dialectFromUrl() == null
+        Helper.dialectFromUrl('jdbc:h2:file:./.db/h2/tower') == 'h2'
+        Helper.dialectFromUrl('jdbc:mysql://foo.com:3306/licman') == 'mysql'
+    }
+
+    def 'should get driver from url' () {
+        expect:
+        Helper.driverFromUrl() == null
+        Helper.driverFromUrl('jdbc:h2:file:./.db/h2/tower') == 'org.h2.Driver'
+        Helper.driverFromUrl('jdbc:mysql://foo.com:3306/licman') == 'com.mysql.cj.jdbc.Driver'
+    }
 }

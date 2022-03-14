@@ -5,6 +5,10 @@ import java.util.concurrent.Callable;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+
+import static io.seqera.migtool.Helper.driverFromUrl;
+import static io.seqera.migtool.Helper.dialectFromUrl;
+
 /**
  * Mig tool main launcher
  *
@@ -30,8 +34,8 @@ public class App implements Callable<Integer> {
     @Option(names = {"--driver"}, description = "JDBC driver class name")
     private String driver;
 
-    @Option(names = {"--locations"}, description = "DB migration scripts location path (local path should be prefixed with `file:`)")
-    private String locations;
+    @Option(names = {"--location"}, description = "DB migration scripts location path (local path should be prefixed with `file:`)")
+    private String location;
 
     @Option(names = {"--pattern"}, description = "DB migration scripts file names pattern")
     private String pattern = "^m(\\d+)__(.+)";
@@ -44,9 +48,9 @@ public class App implements Callable<Integer> {
                 .withUser(username)
                 .withPassword(password)
                 .withUrl(url)
-                .withDialect(dialect)
-                .withDriver(driver)
-                .withLocations(locations)
+                .withDialect(dialect!=null ? dialect : dialectFromUrl(url))
+                .withDriver(driver!=null ? driver : driverFromUrl(url))
+                .withLocations(location)
                 .withPattern(pattern);
 
         try {
@@ -62,6 +66,7 @@ public class App implements Callable<Integer> {
             return 1;
         }
     }
+
 
     public static void main(String[] args) {
         int exitCode = new CommandLine(new App()).execute(args);

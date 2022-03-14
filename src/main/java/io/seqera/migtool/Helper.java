@@ -201,4 +201,19 @@ public class Helper {
         tryClose(closeable);
     }
 
+    static public String dialectFromUrl(String url) {
+        if( url==null )
+            return null;
+        String[] parts = url.split(":");
+        return parts.length > 1 ? parts[1] : null;
+    }
+
+    static public String driverFromUrl(String url) {
+        final String dialect = dialectFromUrl(url);
+        if( "mysql".equals(dialect) )
+            return "com.mysql.cj.jdbc.Driver";
+        if( "h2".equals(dialect))
+            return "org.h2.Driver";
+        return null;
+    }
 }
