@@ -24,7 +24,6 @@ class MysqlTest extends Specification {
         container.start()
     }
 
-    @IgnoreIf({System.getenv('NATIVE_BINARY_PATH')})
     def 'should do something'  () {
         given:
         def tool = new MigTool()
@@ -45,31 +44,4 @@ class MysqlTest extends Specification {
 
     }
 
-    @Timeout(30)
-    @Requires({System.getenv('NATIVE_BINARY_PATH')})
-    def 'should run native binary' () {
-        given:
-        def BIN = System.getenv('NATIVE_BINARY_PATH')
-        def CLI = [BIN,
-                '-u', container.getUsername(),
-                '-p', container.getPassword(),
-                '--url', container.getJdbcUrl(),
-                '--driver', 'com.mysql.cj.jdbc.Driver',
-                '--dialect', 'mysql',
-                '--locations', 'file:src/test/resources/migrate-db/mysql' ]
-
-        when:
-        println "Running: ${CLI.join( )}"
-        def proc = new ProcessBuilder()
-                .command(CLI)
-                .redirectErrorStream(true)
-                .start()
-        and:
-        def result = proc.waitFor()
-        if( result!=0 )
-            System.err.println(proc.text)
-        
-        then:
-        result == 0
-    }
 }

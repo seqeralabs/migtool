@@ -26,6 +26,12 @@ repositories {
     mavenCentral()
 }
 
+def nativeCliTest = sourceSets.create('nativeCliTest')
+
+configurations[nativeCliTest.implementationConfigurationName].extendsFrom(configurations.testImplementation)
+configurations[nativeCliTest.runtimeOnlyConfigurationName].extendsFrom(configurations.testRuntimeOnly)
+
+
 dependencies {
     // This dependency is used by the application.
     implementation "ch.qos.logback:logback-classic:1.2.3"
@@ -48,6 +54,9 @@ dependencies {
 
     // Dummy library containing some migration files among their resources for testing purposes
     testImplementation files("libs/jar-with-resources.jar")
+
+    nativeCliTestImplementation project
+    nativeCliTestImplementation "org.codehaus.groovy:groovy-sql:3.0.9"
 }
 
 test {
@@ -82,7 +91,23 @@ graalvmNative {
             buildArgs.add('-H:EnableURLProtocols=https,http')
             buildArgs.add('-H:+ReportExceptionStackTraces')
             buildArgs.add('-H:-CheckToolchain')
-
+            buildArgs.add('-H:IncludeResources=.*/TlsSettings.properties$')
         }
     }
+}
+
+def nativeCliTestTask = tasks.register('nativeCliTest', Test) {
+    description = 'Runs nativeCli tests.'
+    group = 'verification'
+    useJUnitPlatform()
+
+    testClassesDirs = nativeCliTest.output.classesDirs
+    classpath = configurations[nativeCliTest.runtimeClasspathConfigurationName] + nativeCliTest.output
+
+    dependsOn nativeCompile
+    environment 'NATIVE_BINARY_PATH', "$buildDir/native/nativeCompile/migtool"
+}
+
+tasks.named('check') {
+    dependsOn(nativeCliTestTask)
 }
