@@ -176,6 +176,9 @@ public class MigTool {
         }
 
         try( Connection conn = getConnection() ) {
+            if( conn == null )
+                throw new IllegalStateException("Unable to aquire DB connection");
+
             // retrieve the database schema
             if( schema==null || schema.isEmpty() ) {
                 schema = conn.getSchema();

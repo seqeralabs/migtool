@@ -7,6 +7,8 @@
  */
 
 plugins {
+    id 'java'
+    id 'groovy'
     id 'application'
     id 'org.graalvm.buildtools.native' version '0.9.10'
 }
@@ -24,19 +26,41 @@ repositories {
     mavenCentral()
 }
 
+def nativeCliTest = sourceSets.create('nativeCliTest')
+
+configurations[nativeCliTest.implementationConfigurationName].extendsFrom(configurations.testImplementation)
+configurations[nativeCliTest.runtimeOnlyConfigurationName].extendsFrom(configurations.testRuntimeOnly)
+
+
 dependencies {
     // This dependency is used by the application.
     implementation "ch.qos.logback:logback-classic:1.2.3"
     runtimeOnly 'mysql:mysql-connector-java:8.0.22'
     runtimeOnly 'com.h2database:h2:1.4.200'
-
+    runtimeOnly 'mysql:mysql-connector-java:8.0.28'
+    implementation 'info.picocli:picocli:4.6.3'
+    annotationProcessor 'info.picocli:picocli-codegen:4.6.3'
+    
     // Use the latest Groovy version for Spock testing
-    testImplementation 'org.codehaus.groovy:groovy-all:2.5.12'
-    testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
+    testImplementation "org.codehaus.groovy:groovy:3.0.9"
+    testImplementation "org.codehaus.groovy:groovy-nio:3.0.9"
+    testImplementation platform("org.spockframework:spock-bom:2.1-groovy-3.0")
+    testImplementation "org.spockframework:spock-core"
+    testImplementation "org.spockframework:spock-junit4"  // you can remove this if your code does not rely on old JUnit 4 rules
     testImplementation 'junit:junit:4.13'
+    testImplementation "org.testcontainers:testcontainers:1.16.3"
+    testImplementation "org.testcontainers:mysql:1.16.3"
+    testImplementation "org.testcontainers:spock:1.16.3"
 
     // Dummy library containing some migration files among their resources for testing purposes
     testImplementation files("libs/jar-with-resources.jar")
+
+    nativeCliTestImplementation project
+    nativeCliTestImplementation "org.codehaus.groovy:groovy-sql:3.0.9"
+}
+
+test {
+    useJUnitPlatform()
 }
 
 application {
@@ -67,7 +91,23 @@ graalvmNative {
             buildArgs.add('-H:EnableURLProtocols=https,http')
             buildArgs.add('-H:+ReportExceptionStackTraces')
             buildArgs.add('-H:-CheckToolchain')
-
+            buildArgs.add('-H:IncludeResources=.*/TlsSettings.properties$')
         }
     }
+}
+
+def nativeCliTestTask = tasks.register('nativeCliTest', Test) {
+    description = 'Runs nativeCli tests.'
+    group = 'verification'
+    useJUnitPlatform()
+
+    testClassesDirs = nativeCliTest.output.classesDirs
+    classpath = configurations[nativeCliTest.runtimeClasspathConfigurationName] + nativeCliTest.output
+
+    dependsOn nativeCompile
+    environment 'NATIVE_BINARY_PATH', "$buildDir/native/nativeCompile/migtool"
+}
+
+tasks.named('check') {
+    dependsOn(nativeCliTestTask)
 }

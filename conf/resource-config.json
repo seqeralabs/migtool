@@ -2,6 +2,15 @@
   "resources":{
   "includes":[
     {
+      "pattern":"\\QMETA-INF/services/java.sql.Driver\\E"
+    }, 
+    {
+      "pattern":"\\Q\\E"
+    }, 
+    {
+      "pattern":"\\Qorg/slf4j/impl/StaticLoggerBinder.class\\E"
+    }, 
+    {
       "pattern":"\\Qschema/h2.sql\\E"
     }, 
     {
@@ -11,6 +20,7 @@
       "pattern":"\\Qschema/mysql.sql\\E"
     }
   ]},
-  "bundles":[
-  ]
+  "bundles":[{
+      "name":"com.mysql.cj.LocalizedErrorMessages"
+    }]
 }

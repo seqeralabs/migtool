@@ -30,6 +30,28 @@
   "name":"char[]"}
 ,
 {
+  "name":"com.mysql.cj.conf.url.SingleConnectionUrl",
+  "methods":[{"name":"<init>","parameterTypes":["com.mysql.cj.conf.ConnectionUrlParser","java.util.Properties"] }]}
+,
+{
+  "name":"com.mysql.cj.exceptions.CJCommunicationsException",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }]}
+,
+{
+  "name":"com.mysql.cj.jdbc.AbandonedConnectionCleanupThread"}
+,
+{
+  "name":"com.mysql.cj.jdbc.Driver"}
+,
+{
+  "name":"com.mysql.cj.log.StandardLogger",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String"] }]}
+,
+{
+  "name":"com.mysql.cj.protocol.StandardSocketFactory",
+  "methods":[{"name":"<init>","parameterTypes":[] }]}
+,
+{
   "name":"com.sun.crypto.provider.AESCipher$General",
   "methods":[{"name":"<init>","parameterTypes":[] }]}
 ,
@@ -100,6 +122,9 @@
   "allDeclaredConstructors":true}
 ,
 {
+  "name":"java.io.FilePermission"}
+,
+{
   "name":"java.io.Serializable",
   "allDeclaredMethods":true}
 ,
@@ -162,6 +187,9 @@
   "name":"java.lang.Object[]"}
 ,
 {
+  "name":"java.lang.RuntimePermission"}
+,
+{
   "name":"java.lang.String"}
 ,
 {
@@ -185,6 +213,16 @@
   "queryAllDeclaredConstructors":true}
 ,
 {
+  "name":"java.net.NetPermission"}
+,
+{
+  "name":"java.net.SocketPermission"}
+,
+{
+  "name":"java.net.URLPermission",
+  "methods":[{"name":"<init>","parameterTypes":["java.lang.String","java.lang.String"] }]}
+,
+{
   "name":"java.nio.file.Path"}
 ,
 {
@@ -195,6 +233,9 @@
   "name":"java.security.AlgorithmParametersSpi"}
 ,
 {
+  "name":"java.security.AllPermission"}
+,
+{
   "name":"java.security.KeyStoreSpi"}
 ,
 {
@@ -202,6 +243,9 @@
 ,
 {
   "name":"java.security.SecureRandomParameters"}
+,
+{
+  "name":"java.security.SecurityPermission"}
 ,
 {
   "name":"java.security.interfaces.ECPrivateKey"}
@@ -380,6 +424,9 @@
   "name":"java.util.Locale[]"}
 ,
 {
+  "name":"java.util.PropertyPermission"}
+,
+{
   "name":"java.util.concurrent.LinkedTransferQueue",
   "methods":[{"name":"<init>","parameterTypes":[] }]}
 ,
@@ -397,6 +444,14 @@
 ,
 {
   "name":"long[]"}
+,
+{
+  "name":"org.h2.Driver"}
+,
+{
+  "name":"picocli.CommandLine$AutoHelpMixin",
+  "allDeclaredFields":true,
+  "queryAllDeclaredMethods":true}
 ,
 {
   "name":"sun.misc.Unsafe",
