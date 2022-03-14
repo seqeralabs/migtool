@@ -287,9 +287,9 @@ public class MigTool {
 
                 while( itr.hasNext() ) {
                     Path it = itr.next();
-                    MigRecord entry = MigRecord.parseFilePath(it);
+                    MigRecord entry = MigRecord.parseFilePath(it, pattern);
                     if( entry==null ) {
-                        log.warn("Invalid migration source file: " + itr);
+                        log.warn("Invalid migration source file: " + it);
                     }
                     else {
                         entries.add(entry);

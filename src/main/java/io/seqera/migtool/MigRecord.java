@@ -52,8 +52,11 @@ class MigRecord implements Comparable<MigRecord> {
         return entry;
     }
 
-    static MigRecord parseFilePath(Path path) {
-        Matcher m = DEFAULT_PATTERN.matcher(path.getFileName().toString());
+    static MigRecord parseFilePath(Path path, Pattern pattern) {
+        if( pattern == null )
+            pattern = DEFAULT_PATTERN;
+
+        Matcher m = pattern.matcher(path.getFileName().toString());
         if( !m.matches() ) {
             return null;
         }
