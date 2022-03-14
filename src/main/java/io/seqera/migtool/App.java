@@ -41,7 +41,7 @@ public class App implements Callable<Integer> {
     private String pattern = "^m(\\d+)__(.+)";
 
     @Override
-    public Integer call() throws Exception {
+    public Integer call() {
 
         // set optional fields
         MigTool tool = new MigTool()

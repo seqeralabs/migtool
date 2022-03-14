@@ -2,6 +2,8 @@ package io.seqera.migtool
 
 import groovy.sql.Sql
 import org.testcontainers.containers.MySQLContainer
+import spock.lang.IgnoreIf
+import spock.lang.Requires
 import spock.lang.Specification
 import spock.lang.Timeout
 
@@ -9,6 +11,8 @@ import spock.lang.Timeout
  *
  * @author Paolo Di Tommaso <paolo.ditommaso@gmail.com>
  */
+@Timeout(30)
+@Requires({System.getenv('NATIVE_BINARY_PATH')})
 class MysqlTest extends Specification {
 
     static MySQLContainer container
@@ -20,7 +24,6 @@ class MysqlTest extends Specification {
         container.start()
     }
 
-    @Timeout(30)
     def 'should run native binary' () {
         given:
         def BIN = System.getenv('NATIVE_BINARY_PATH')
@@ -28,6 +31,7 @@ class MysqlTest extends Specification {
                 '-u', container.username,
                 '-p', container.password,
                 '--url', container.jdbcUrl,
+                '--pattern', '^V(\\d+)__(.+)',
                 '--location', 'file:src/test/resources/migrate-db/mysql' ]
 
         when:
