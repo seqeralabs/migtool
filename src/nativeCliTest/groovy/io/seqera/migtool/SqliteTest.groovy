@@ -24,7 +24,8 @@ class SqliteTest extends Specification {
         def CLI = [BIN,
                 '-u', 'user',
                 '-p', 'pass',
-                '--url', "jdbc:sqlite:${this.dbName}",
+                '--driver', 'org.sqlite.JDBC',
+                '--url', 'jdbc:sqlite:',
                 '--pattern', '^V(\\d+)__(.+)',
                 '--location', 'file:src/test/resources/migrate-db/sqlite' ]
 
@@ -44,6 +45,6 @@ class SqliteTest extends Specification {
 
         and:
         Sql.newInstance(container.jdbcUrl, container.username, container.password)
-                .rows("SELECT * from license").size() == 0
+                .rows("SELECT count(*) from license").size() == 1
     }
 }
