@@ -3,19 +3,22 @@ package io.seqera.migtool
 import groovy.sql.Sql
 import org.testcontainers.containers.MySQLContainer
 import spock.lang.Requires
+import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Timeout
+
+import java.nio.file.Files
+import java.nio.file.Path
 
 
 @Timeout(30)
 @Requires({System.getenv('NATIVE_BINARY_PATH')})
 class SqliteTest extends Specification {
 
-    static MySQLContainer container
+    Path dbName;
 
-    String dbName;
-    def setupSpec() {
-        this.dbName = "db_${UUID.randomUUID().toString()}.db"
+    def setup() {
+        dbName = Files.createTempFile("db_${UUID.randomUUID().toString()}","db")
     }
 
     def 'should run native binary' () {
@@ -25,7 +28,7 @@ class SqliteTest extends Specification {
                 '-u', 'user',
                 '-p', 'pass',
                 '--driver', 'org.sqlite.JDBC',
-                '--url', 'jdbc:sqlite:',
+                '--url', "jdbc:sqlite:/$dbName".toString(),
                 '--pattern', '^V(\\d+)__(.+)',
                 '--location', 'file:src/test/resources/migrate-db/sqlite' ]
 
@@ -44,7 +47,7 @@ class SqliteTest extends Specification {
         result == 0
 
         and:
-        Sql.newInstance(container.jdbcUrl, container.username, container.password)
+        Sql.newInstance("jdbc:sqlite:/$dbName", "user", "pass")
                 .rows("SELECT count(*) from license").size() == 1
     }
 }

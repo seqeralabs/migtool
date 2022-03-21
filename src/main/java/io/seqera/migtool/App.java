@@ -29,7 +29,7 @@ public class App implements Callable<Integer> {
     private String url;
 
     @Option(names = {"--dialect"}, description = "DB dialect")
-    private String dialect = "mysql";
+    private String dialect;
 
     @Option(names = {"--driver"}, description = "JDBC driver class name")
     private String driver;
