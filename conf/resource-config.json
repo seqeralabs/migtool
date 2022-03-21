@@ -18,6 +18,9 @@
     }, 
     {
       "pattern":"\\Qschema/mysql.sql\\E"
+    },
+    {
+      "pattern":"\\Qschema/sqlite.sql\\E"
     }
   ]},
   "bundles":[{

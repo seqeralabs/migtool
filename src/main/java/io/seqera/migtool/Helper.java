@@ -214,6 +214,8 @@ public class Helper {
             return "com.mysql.cj.jdbc.Driver";
         if( "h2".equals(dialect))
             return "org.h2.Driver";
+        if( "sqlite".equals(dialect))
+            return "org.sqlite.Driver";
         return null;
     }
 }

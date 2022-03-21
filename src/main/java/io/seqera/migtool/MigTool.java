@@ -43,7 +43,7 @@ public class MigTool {
 
     static final String MIGTOOL_TABLE = "MIGTOOL_HISTORY";
 
-    static final String[] DIALECTS = {"h2", "mysql", "mariadb"};
+    static final String[] DIALECTS = {"h2", "mysql", "mariadb","sqlite"};
 
     String driver;
     String url;
@@ -388,6 +388,7 @@ public class MigTool {
 
         try (Connection conn=getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
             stm.setInt(1, entry.rank);
+
             ResultSet rs = stm.executeQuery();
             if( !rs.next() ) {
                 return false;
