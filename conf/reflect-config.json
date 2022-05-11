@@ -665,6 +665,29 @@
     "name":"org.sqlite.core.DB$ProgressObserver",
     "allDeclaredMethods":true,
     "allPublicMethods": true
+},
+{
+  "name":"org.h2.store.fs.FilePathDisk",
+  "allDeclaredMethods":true,
+  "allPublicMethods": true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.h2.store.fs.FilePathMem",
+  "allDeclaredMethods":true,
+  "allPublicMethods": true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.h2.store.fs.FilePathNio",
+  "allDeclaredMethods":true,
+  "allPublicMethods": true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
+},
+{
+  "name":"org.h2.mvstore.db.MVTableEngine",
+  "allDeclaredMethods":true,
+  "allPublicMethods": true,
+  "methods":[{"name":"<init>","parameterTypes":[] }]
 }
-
 ]

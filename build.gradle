@@ -88,12 +88,14 @@ graalvmNative {
             buildArgs(org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isLinux() ? ['--static', ] : [])
             buildArgs.add('--allow-incomplete-classpath')
             buildArgs.add('--report-unsupported-elements-at-runtime')
+            buildArgs.add('--initialize-at-run-time=sun.nio.ch.WindowsAsynchronousFileChannelImpl$DefaultIocpHolder')
             buildArgs.add('-H:+AddAllCharsets')
             buildArgs.add('-H:EnableURLProtocols=https,http')
             buildArgs.add('-H:+ReportExceptionStackTraces')
             buildArgs.add('-H:-CheckToolchain')
             buildArgs.add('-H:IncludeResources=.*/TlsSettings.properties$')
             buildArgs.add('-H:+StaticExecutableWithDynamicLibC')
+            buildArgs.add('-H:+PrintClassInitialization')
         }
     }
 }
