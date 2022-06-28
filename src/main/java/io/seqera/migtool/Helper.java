@@ -215,7 +215,7 @@ public class Helper {
         if( "h2".equals(dialect))
             return "org.h2.Driver";
         if( "sqlite".equals(dialect))
-            return "org.sqlite.Driver";
+            return "org.sqlite.JDBC";
         return null;
     }
 }
