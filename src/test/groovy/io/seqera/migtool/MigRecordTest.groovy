@@ -79,4 +79,44 @@ class MigRecordTest extends Specification {
         entry3.statements == ['create table CUSTOM ( col4 varchar(4) );']
         entry3.checksum == '739220206cd13dbfc6f86d2cee11c8d7a42d190bb67004c54a02f93bbc98ff77'
     }
+
+    def 'compare records for files with same statements'() {
+        given: 'some files with the same statements'
+        def folder = Files.createTempDirectory('test')
+
+        final referenceFile = folder.resolve('V01__file1.sql')
+        referenceFile.text = 'create table XXX ( col1 varchar(1) ); alter table XXX add column col2 varchar(2);'
+        final externalBlanksFile = folder.resolve('V02__file2.sql')
+        externalBlanksFile.text = '     create table XXX ( col1 varchar(1) );  \n\t  alter table XXX add column col2 varchar(2);  \n  '
+        final internalBlanksFile = folder.resolve('V03__file3.sql')
+        internalBlanksFile.text = 'create table XXX  \n\t   ( col1 varchar(1) ); alter table XXX    add column col2 varchar(2);'
+        final uppercaseFile = folder.resolve('V04__file4.sql')
+        uppercaseFile.text = 'CREATE TABLE XXX ( col1 VARCHAR(1) ); ALTER TABLE XXX ADD COLUMN col2 VARCHAR(2);'
+        final commentsFile = folder.resolve('V05__file5.sql')
+        commentsFile.text = 'create table XXX ( col1 varchar(1) );\n -- A comment\n alter table XXX add column col2 varchar(2);'
+
+        when: 'parse both files'
+        def referenceEntry = MigRecord.parseFilePath(referenceFile, null)
+        def externalBlanksEntry = MigRecord.parseFilePath(externalBlanksFile, null)
+        def internalBlanksEntry = MigRecord.parseFilePath(internalBlanksFile, null)
+        def uppercaseEntry = MigRecord.parseFilePath(uppercaseFile, null)
+        def commentsEntry = MigRecord.parseFilePath(commentsFile, null)
+
+        then: 'the record with blanks between statements is equal'
+        referenceEntry.statements == externalBlanksEntry.statements
+        referenceEntry.checksum == externalBlanksEntry.checksum
+
+        and: 'the record with blanks within the statements is not equal'
+        referenceEntry.statements != internalBlanksEntry.statements
+        referenceEntry.checksum != internalBlanksEntry.checksum
+
+        and: 'the record with different case is not equal'
+        referenceEntry.statements != uppercaseEntry.statements
+        referenceEntry.checksum != uppercaseEntry.checksum
+
+        and: 'the record with comments is not equal'
+        referenceEntry.statements != commentsEntry.statements
+        referenceEntry.checksum != commentsEntry.checksum
+    }
+
 }
