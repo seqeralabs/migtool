@@ -26,7 +26,7 @@ class H2FileTest extends Specification {
                 '-p', '',
                 '--url', "jdbc:h2:$dbName".toString(),
                 '--pattern', '^V(\\d+)__(.+)',
-                '--location', 'file:src/test/resources/migrate-db/h2' ]
+                '--location', 'file:src/nativeCliTest/resources/migrate-db/h2' ]
 
         when:
         println "Running: ${CLI.join( )}"
