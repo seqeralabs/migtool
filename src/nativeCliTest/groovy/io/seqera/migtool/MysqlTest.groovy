@@ -32,7 +32,7 @@ class MysqlTest extends Specification {
                 '-p', container.password,
                 '--url', container.jdbcUrl,
                 '--pattern', '^V(\\d+)__(.+)',
-                '--location', 'file:src/test/resources/migrate-db/mysql' ]
+                '--location', 'file:src/nativeCliTest/resources/migrate-db/mysql' ]
 
         when:
         println "Running: ${CLI.join( )}"

@@ -30,7 +30,7 @@ class SqliteTest extends Specification {
                 '--driver', 'org.sqlite.JDBC',
                 '--url', "jdbc:sqlite:/$dbName".toString(),
                 '--pattern', '^V(\\d+)__(.+)',
-                '--location', 'file:src/test/resources/migrate-db/sqlite' ]
+                '--location', 'file:src/nativeCliTest/resources/migrate-db/sqlite' ]
 
         when:
         println "Running: ${CLI.join( )}"

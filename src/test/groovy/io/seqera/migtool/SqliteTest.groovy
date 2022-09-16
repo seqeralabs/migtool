@@ -10,16 +10,23 @@
  */
 package io.seqera.migtool
 
-
+import spock.lang.Shared
 import spock.lang.Specification
 
 
 class SqliteTest extends Specification {
 
-    String dbName;
+    @Shared String dbName
+
     def setupSpec() {
-        this.dbName = "db_${UUID.randomUUID().toString()}.db"
+        dbName = "db_${UUID.randomUUID().toString()}.db"
     }
+
+    def cleanupSpec() {
+        def dbFile = new File(dbName)
+        if (dbFile.exists()) dbFile.delete()
+    }
+
     def 'should do something'  () {
         given:
         def tool = new MigTool()
@@ -27,7 +34,7 @@ class SqliteTest extends Specification {
                 .withDialect('sqlite')
                 .withUser("user")
                 .withPassword("password")
-                .withUrl("jdbc:sqlite:${this.dbName}")
+                .withUrl("jdbc:sqlite:${dbName}")
                 .withLocations('file:src/test/resources/migrate-db/sqlite')
 
         when:
