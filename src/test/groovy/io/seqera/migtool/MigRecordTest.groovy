@@ -10,7 +10,7 @@ import spock.lang.Specification
  */
 class MigRecordTest extends Specification {
 
-    def 'should parse file entry' () {
+    def 'should parse SQL file entry' () {
         given:
         def folder = Files.createTempDirectory('test')
         folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
@@ -51,8 +51,43 @@ class MigRecordTest extends Specification {
         folder?.deleteDir();
     }
 
+    def 'should parse Groovy file entry' () {
+        given: 'some temporary Groovy scripts'
+        def folder = Files.createTempDirectory('test')
+        final oneStatementFile = folder.resolve('V01__file1.groovy')
+        oneStatementFile.text = 'println("Hello world")'
+        final multipleStatementsFile = folder.resolve('V02__file2.groovy')
+        multipleStatementsFile.text = 'def a = "world"; def b = "!"\nprintln("Hello ${a}${b}")'
 
-    def 'should parse resource file'() {
+        when: 'parse the script made of one Groovy statement'
+        def oneStatementEntry = MigRecord.parseFilePath(oneStatementFile, null)
+
+        then: 'the metadata info is as expected'
+        oneStatementEntry.rank == 1
+        oneStatementEntry.script == oneStatementFile.fileName.toString()
+
+        and: 'there is always only one statement'
+        oneStatementEntry.statements.size() == 1
+        oneStatementEntry.statements == ['println("Hello world")']
+        oneStatementEntry.checksum == '274188f7b7e2e31eb0a125dd6b84effc840cb4b7caf16df3e7aada01f8c55307'
+
+        when: 'parse the script made of multiple Groovy statements'
+        def multipleStatementsEntry = MigRecord.parseFilePath(multipleStatementsFile, null)
+
+        then: 'the metadata info is as expected'
+        multipleStatementsEntry.rank == 2
+        multipleStatementsEntry.script == multipleStatementsFile.fileName.toString()
+
+        and: 'there is always only one statement'
+        multipleStatementsEntry.statements.size() == 1
+        multipleStatementsEntry.statements == ['def a = "world"; def b = "!"\nprintln("Hello ${a}${b}")']
+        multipleStatementsEntry.checksum == 'c7dcc846095277fce31215a7301ad4fb38df69a1227d31fc2156211e7939e9ff'
+
+        cleanup:
+        folder?.deleteDir()
+    }
+
+    def 'should parse SQL resource file'() {
 
         when:
         def entry1 = MigRecord.parseResourcePath('/db/mariadb/V01__maria1.sql', null)
@@ -80,7 +115,17 @@ class MigRecordTest extends Specification {
         entry3.checksum == '739220206cd13dbfc6f86d2cee11c8d7a42d190bb67004c54a02f93bbc98ff77'
     }
 
-    def 'compare records for files with same statements'() {
+    def 'should parse Groovy resource file' () {
+        when:
+        def entry1 = MigRecord.parseResourcePath('/db/mariadb/V03__maria3.groovy', null)
+        then:
+        entry1.rank == 3
+        entry1.script == 'V03__maria3.groovy'
+        entry1.statements == ['sql.rows("SELECT * FROM XXX")']
+        entry1.checksum == '71a8b87777c309059c43f8157d20ffcf25edd1669c4163f8eb2b48ddb663616e'
+    }
+
+    def 'compare records for SQL files with same statements'() {
         given: 'some files with the same statements'
         def folder = Files.createTempDirectory('test')
 

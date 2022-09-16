@@ -20,8 +20,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
 import java.util.regex.Pattern;
 
+import groovy.lang.Binding;
+import groovy.lang.GroovyShell;
+import groovy.sql.Sql;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -350,19 +354,12 @@ public class MigTool {
 
         log.info("DB migration {} {} ..", entry.rank, entry.script);
 
-        // apply all migration statements
         long now = System.currentTimeMillis();
-        for( String it : entry.statements ) {
-            final long ts = System.currentTimeMillis();
-            try (Connection conn = getConnection(5); Statement stm=conn.createStatement()) {
-                stm.execute(it);
-                log.debug("- Applied migration: {} elapsed time: {}ms", it, System.currentTimeMillis()-ts);
-            }
-            catch (SQLException e) {
-                long delta = System.currentTimeMillis()-ts;
-                String msg = "MIGRATION FAILED - PLEASE RECOVER THE DATABASE FROM THE LAST BACKUP - Offending statement: "+it+" elapsed time: "+(delta)+"ms";
-                throw new IllegalStateException(msg, e);
-            }
+
+        if (entry.language == MigRecord.Language.groovy) {
+            runGroovyMigration(entry);
+        } else {
+            runSqlMigration(entry);
         }
 
         // compute the delta
@@ -402,6 +399,39 @@ public class MigTool {
         }
         catch (SQLException e) {
             throw new IllegalStateException("Unable validate migration -- cause: "+e.getMessage(), e);
+        }
+    }
+
+    private void runSqlMigration(MigRecord entry) {
+        // Apply all SQL migration statements
+        for( String it : entry.statements ) {
+            final long ts = System.currentTimeMillis();
+            try (Connection conn = getConnection(5); Statement stm=conn.createStatement()) {
+                stm.execute(it);
+                log.debug("- Applied migration: {} elapsed time: {}ms", it, System.currentTimeMillis()-ts);
+            }
+            catch (SQLException e) {
+                long delta = System.currentTimeMillis()-ts;
+                String msg = "SQL MIGRATION FAILED - PLEASE RECOVER THE DATABASE FROM THE LAST BACKUP - Offending statement: "+it+" elapsed time: "+(delta)+"ms";
+                throw new IllegalStateException(msg, e);
+            }
+        }
+    }
+
+    protected void runGroovyMigration(MigRecord entry) {
+        final long ts = System.currentTimeMillis();
+
+        try (Connection conn = getConnection()) {
+            Sql sql = new Sql(conn);
+            Binding binding = new Binding( Map.of("sql", sql) );
+            GroovyShell shell = new GroovyShell(binding);
+
+            shell.evaluate(entry.statements.get(0));
+
+        } catch (Exception e) {
+            long delta = System.currentTimeMillis() - ts;
+            String msg = "GROOVY MIGRATION FAILED - PLEASE RECOVER THE DATABASE FROM THE LAST BACKUP - Elapsed time: "+(delta)+"ms";
+            throw new IllegalStateException(msg, e);
         }
     }
 

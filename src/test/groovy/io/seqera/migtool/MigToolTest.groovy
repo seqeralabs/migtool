@@ -110,7 +110,7 @@ class MigToolTest extends Specification {
         and:
         tool.scanMigrations()
         then:
-        tool.migrationEntries.size()==2
+        tool.migrationEntries.size()==3
         and:
         with(tool.migrationEntries[0]) {
             rank == 1
@@ -122,6 +122,12 @@ class MigToolTest extends Specification {
             rank == 2
             script == 'V02__maria2.sql'
             statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and:
+        with(tool.migrationEntries[2]) {
+            rank == 3
+            script == 'V03__maria3.groovy'
+            statements == ['sql.rows("SELECT * FROM XXX")']
         }
 
         when:

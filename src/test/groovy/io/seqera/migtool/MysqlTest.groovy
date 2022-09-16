@@ -1,10 +1,8 @@
 package io.seqera.migtool
 
 import org.testcontainers.containers.MySQLContainer
-import spock.lang.IgnoreIf
-import spock.lang.Requires
+
 import spock.lang.Specification
-import spock.lang.Timeout
 
 /**
  *
@@ -42,6 +40,41 @@ class MysqlTest extends Specification {
         tool.existTable(tool.getConnection(), 'license')
         !tool.existTable(tool.getConnection(), 'foo')
 
+    }
+
+    def 'should run a failing Groovy script' () {
+        given:
+        def tool = new MigTool()
+                .withDriver('com.mysql.cj.jdbc.Driver')
+                .withDialect('mysql')
+                .withUrl(container.getJdbcUrl())
+                .withUser(container.getUsername())
+                .withPassword(container.getPassword())
+                .withLocations('file:src/test/resources/migrate-db/mysql')
+
+        and:
+        def script = '''
+             // Some valid statements
+             def a = 1
+             def b = 'hello world'
+             String c = null
+             // A failing statement at line 7:
+             c.size()
+        '''
+        def record = new MigRecord(rank: 2, script: 'V02__groovy-script.groovy', checksum: 'whatever', statements: [script])
+
+        when:
+        tool.run()
+        tool.runGroovyMigration(record)
+
+        then: 'an exception is thrown'
+        def e = thrown(IllegalStateException)
+        e.message.startsWith('GROOVY MIGRATION FAILED')
+
+        and: 'the root cause is present and the stack trace contains the expected offending line number'
+        e.cause.class == NullPointerException
+        e.cause.message == 'Cannot invoke method size() on null object'
+        e.cause.stackTrace.join('\n').contains('.groovy:7')
     }
 
 }
