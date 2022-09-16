@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import groovy.lang.Binding;
+import groovy.lang.Closure;
 import groovy.lang.GroovyShell;
 import groovy.sql.Sql;
 import org.slf4j.Logger;
@@ -422,11 +423,18 @@ public class MigTool {
         final long ts = System.currentTimeMillis();
 
         try (Connection conn = getConnection()) {
+            // Bind a `sql` variable, so it can be handled in scripts
             Sql sql = new Sql(conn);
             Binding binding = new Binding( Map.of("sql", sql) );
             GroovyShell shell = new GroovyShell(binding);
 
-            shell.evaluate(entry.statements.get(0));
+            // Run the script in a transaction in order to prevent inconsistent final states
+            Closure<Object> closure = new Closure<Object>(null) {
+                public Object doCall() {
+                    return shell.evaluate(entry.statements.get(0));
+                }
+            };
+            sql.withTransaction(closure);
 
         } catch (Exception e) {
             long delta = System.currentTimeMillis() - ts;
