@@ -357,7 +357,7 @@ public class MigTool {
 
         long now = System.currentTimeMillis();
 
-        if (entry.language == MigRecord.Language.groovy) {
+        if (entry.language == MigRecord.Language.GROOVY) {
             runGroovyMigration(entry);
         } else {
             runSqlMigration(entry);

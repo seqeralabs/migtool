@@ -16,14 +16,14 @@ import java.util.regex.Pattern;
 class MigRecord implements Comparable<MigRecord> {
 
     enum Language {
-        sql,
-        groovy;
+        SQL,
+        GROOVY;
 
         static Language from(String fileName) {
-            if (fileName.endsWith(".groovy")) return groovy;
+            if (fileName.endsWith(".groovy")) return GROOVY;
 
             // Fall back to SQL in any other case
-            return sql;
+            return SQL;
         }
     }
 
@@ -85,7 +85,7 @@ class MigRecord implements Comparable<MigRecord> {
         entry.rank = rank;
         entry.script = fileName;
         // Groovy scripts are not split in multiple statements; they will be executed as a one single big statement
-        entry.statements = (entry.language == Language.groovy) ? List.of(content) : getSqlStatements(content);
+        entry.statements = (entry.language == Language.GROOVY) ? List.of(content) : getSqlStatements(content);
 
         entry.checksum = Helper.computeSha256(join(entry.statements));
 
