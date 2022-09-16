@@ -2,11 +2,12 @@
 
 Implements a no-frills DB migration tool inspired by Flyway. 
 
-Migration files are a simple collection of DDL/MDL statements separated by `;` character, 
+Migration files are a simple collection of SQL DDL/DML statements separated by `;` character, 
 that can be stored either in a local directory or as resources in the application
-classpath. 
+classpath.
+In addition, the migration files can be written in Groovy in order to run scripts using [`groovy-sql`](https://groovy-lang.org/databases.html).
 
-Only requirement is that migration files follow the pattern `V99__Some_name`, where 
+Only requirement is that migration files follow the pattern `V99__Some_name.[sql|groovy]`, where 
 `99` can be any integer value.
 
 
@@ -44,6 +45,11 @@ finally run it following the example below:
    --url jdbc:mysql://<host>:3306/<schema> \
    --location file:/path/to/migration/scripts
 ```
+
+> **Warning**
+>
+> Due to current limitations in GraalVM when it comes to running arbitrary Groovy scripts, the binary can only run SQL migration files.
+
                                                         
 #### Options 
 
