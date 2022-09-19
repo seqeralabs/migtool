@@ -14,7 +14,8 @@ plugins {
     id 'maven-publish'
 }
 
-version = '1.3.0'
+// read the version from the `VERSION` file
+version = new File(rootDir,'VERSION').text.trim()
 group = 'io.seqera'
 
 java {
