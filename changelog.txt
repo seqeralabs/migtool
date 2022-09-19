@@ -1,5 +1,9 @@
-NEXTFLOW CHANGE-LOG
+MIGTOOL CHANGE-LOG
 ===================
+
+1.4.0 - 19 Sep 2022
+- Adds the possibility to run groovy based migration scripts
+
 1.0.3 - 27 Aug 2021
 - Fix resultset dump while checking migration table 
 
