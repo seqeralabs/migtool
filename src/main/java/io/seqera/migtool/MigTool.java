@@ -61,7 +61,15 @@ public class MigTool {
     String schema;
     String catalog;
 
-    private List<MigRecord> migrationEntries;
+    private final List<MigRecord> migrationEntries;
+    private final List<MigRecord> fixedEntries;
+    private final List<MigRecord> amendedEntries;
+
+    public MigTool() {
+        this.migrationEntries = new ArrayList<>();
+        this.fixedEntries = new ArrayList<>();
+        this.amendedEntries = new ArrayList<>();
+    }
 
     public MigTool withDriver(String driver) {
         this.driver = driver;
@@ -151,6 +159,14 @@ public class MigTool {
 
     List<MigRecord> getMigrationEntries() {
         return migrationEntries;
+    }
+
+    List<MigRecord> getFixedEntries() {
+        return fixedEntries;
+    }
+
+    List<MigRecord> getAmendedEntries() {
+        return amendedEntries;
     }
 
     /**
@@ -244,7 +260,7 @@ public class MigTool {
     }
 
     /**
-     * Create the support Migtool DB table if does not exists
+     * Create the support Migtool DB table if it does not exist
      */
     protected void createIfNotExists() {
         try (Connection conn = getConnection()) {
@@ -266,28 +282,24 @@ public class MigTool {
      * a file system directory or classpath resources
      */
     protected void scanMigrations() {
-
         if( locations.startsWith(SOURCE_CLASSPATH) ) {
             String path = locations.substring(SOURCE_CLASSPATH.length());
             Set<String> files = Helper.getResourceFiles(path);
-            List<MigRecord> entries = new ArrayList<>(files.size());
             for( String it : files ) {
                 MigRecord entry = MigRecord.parseResourcePath(it, pattern);
                 if( entry==null ) {
                     log.warn("Invalid migration source file: " + it);
                 }
                 else {
-                    entries.add(entry);
+                    addEntry(entry);
                 }
             }
             // sort
-            Collections.sort(entries);
-            this.migrationEntries = entries;
+            Collections.sort(this.migrationEntries);
         }
         else if( locations.startsWith(SOURCE_FILE)) {
             String path = locations.substring(SOURCE_FILE.length());
             try {
-                List<MigRecord> entries = new ArrayList<>();
                 Iterator<Path> itr = Files.newDirectoryStream(Paths.get(path)).iterator();
 
                 while( itr.hasNext() ) {
@@ -297,11 +309,10 @@ public class MigTool {
                         log.warn("Invalid migration source file: " + it);
                     }
                     else {
-                        entries.add(entry);
+                        addEntry(entry);
                     }
                 }
-                Collections.sort(entries);
-                this.migrationEntries = entries;
+                Collections.sort(this.migrationEntries);
             }
             catch (IOException e ) {
                 throw new IllegalArgumentException("Unable to list files from location: " + locations + " -- cause: " + e.getMessage());
@@ -310,6 +321,16 @@ public class MigTool {
         else {
             throw new IllegalArgumentException("Invalid locations prefix: " + locations);
         }
+        log.debug("Scanned {} migration files, {} amended files and {} fixed files", migrationEntries.size(), amendedEntries.size(), fixedEntries.size());
+    }
+
+    private void addEntry(MigRecord entry) {
+        if(entry.isAmended())
+            this.amendedEntries.add(entry);
+        else if(entry.isFixed())
+            this.fixedEntries.add(entry);
+        else
+            this.migrationEntries.add(entry);
     }
 
     /**
@@ -344,17 +365,61 @@ public class MigTool {
         }
     }
 
+    MigRecord findFixedRecord(MigRecord entry) {
+        return findRelatedRecordInCollection(fixedEntries, entry);
+    }
+
+    MigRecord findAmendedRecord(MigRecord entry) {
+        return findRelatedRecordInCollection(amendedEntries, entry);
+    }
+
+    private MigRecord findRelatedRecordInCollection(List<MigRecord> records, MigRecord entry) {
+        return records.stream()
+                .filter(e -> e.rank == entry.rank)
+                .findFirst()
+                .orElse(null);
+    }
 
     protected void applyMigration(MigRecord entry) throws SQLException {
-        if( checkMigrated(entry) ) {
+        if (checkMigrated(entry)) {
             log.info("DB migration already applied: {} {}", entry.rank, entry.script);
+            applyMigrationFix(entry);
             return;
         }
 
+        MigRecord amendEntry = findAmendedRecord(entry);
+        if (amendEntry != null) {
+            log.info("Detected amend file. Attempt to apply {} instead of {}", amendEntry.script, entry.script);
+            if (checkMigrated(amendEntry)) {
+                log.info("DB migration amend already applied: {} {}", amendEntry.rank, amendEntry.script);
+                return;
+            }
+            entry = amendEntry;
+        }
+
         checkRank(entry);
-
         log.info("DB migration {} {} ..", entry.rank, entry.script);
+        int delta = migrate(entry);
+        log.info("DB migration performed: {} {} - execution time {}ms {}", entry.rank, entry.script, delta, entry.statements);
+        if (!entry.isAmended())
+            applyMigrationFix(entry);
+    }
 
+    protected void applyMigrationFix(MigRecord entry) throws SQLException {
+        MigRecord fix = findFixedRecord(entry);
+        if (fix != null) {
+            log.info("Detected fix file. Attempt to apply {}", fix.script);
+            if (checkMigrated(fix)) {
+                log.info("DB migration fix already applied: {} {}", fix.rank, fix.script);
+                return;
+            }
+            log.info("DB migration fix {} {} ..", fix.rank, fix.script);
+            int delta = migrate(fix);
+            log.info("DB migration fix performed: {} {} - execution time {}ms {}", fix.rank, fix.script, delta, fix.statements);
+        }
+    }
+
+    private int migrate(MigRecord entry) throws SQLException {
         long now = System.currentTimeMillis();
 
         if (entry.language == MigRecord.Language.GROOVY) {
@@ -376,16 +441,15 @@ public class MigTool {
             insert.setInt(5, delta);
             insert.executeUpdate();
         }
-        // just log
-        log.info("DB migration performed: {} {} - execution time {}ms", entry.rank, entry.script, delta);
-
+        return delta;
     }
 
     protected boolean checkMigrated(MigRecord entry) {
-        String sql = "select `id`, `checksum` from " + MIGTOOL_TABLE + " where `rank` = ?";
+        String sql = "select `id`, `checksum`, `script` from " + MIGTOOL_TABLE + " where `rank` = ? and `script` = ?";
 
         try (Connection conn=getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
             stm.setInt(1, entry.rank);
+            stm.setString(2, entry.script);
 
             ResultSet rs = stm.executeQuery();
             if( !rs.next() ) {

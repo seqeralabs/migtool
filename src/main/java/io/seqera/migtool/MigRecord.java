@@ -28,12 +28,17 @@ class MigRecord implements Comparable<MigRecord> {
     }
 
     static final Pattern DEFAULT_PATTERN = Pattern.compile("^V(\\d+)__(.+)");
+    static final Pattern AMENDED_PATTERN = Pattern.compile("\\.amended");
+    static final Pattern FIXED_PATTERN = Pattern.compile("\\.fixed");
 
     int rank;
     String script;
     Language language;
     String checksum;
     List<String> statements;
+
+    boolean isFixed;
+    boolean isAmended;
 
     @Override
     public int compareTo(MigRecord other) {
@@ -56,6 +61,14 @@ class MigRecord implements Comparable<MigRecord> {
             return null;
         }
 
+        // We do not allow files with double fix or amend, ex. V01__organisation.fixed.fixed.sql
+        if (countMatch(fileName, AMENDED_PATTERN) > 1) {
+            return null;
+        }
+        if (countMatch(fileName, FIXED_PATTERN) > 1) {
+            return null;
+        }
+
         String content = readContent(path);
         int rank = Integer.parseInt(m.group(1));
 
@@ -72,10 +85,30 @@ class MigRecord implements Comparable<MigRecord> {
             return null;
         }
 
+        // We do not allow files with double fix or amend, ex. V01__organisation.fixed.fixed.sql
+        if (countMatch(fileName, AMENDED_PATTERN) > 1) {
+            return null;
+        }
+        if (countMatch(fileName, FIXED_PATTERN) > 1) {
+            return null;
+        }
+
         String content = readContent(path);
         int rank = Integer.parseInt(m.group(1));
 
         return createRecord(fileName, rank, content);
+    }
+
+    private static long countMatch(String name, Pattern pattern) {
+        return pattern.matcher(name).results().count();
+    }
+
+    protected boolean isFixed() {
+        return this.isFixed;
+    }
+
+    protected boolean isAmended() {
+        return this.isAmended;
     }
 
     private static MigRecord createRecord(String fileName, int rank, String content) {
@@ -88,6 +121,9 @@ class MigRecord implements Comparable<MigRecord> {
         entry.statements = (entry.language == Language.GROOVY) ? List.of(content) : getSqlStatements(content);
 
         entry.checksum = Helper.computeSha256(join(entry.statements));
+
+        entry.isFixed = countMatch(fileName, FIXED_PATTERN) == 1;
+        entry.isAmended = countMatch(fileName, AMENDED_PATTERN) == 1;
 
         return entry;
     }
@@ -123,5 +159,18 @@ class MigRecord implements Comparable<MigRecord> {
             result.append(it);
         }
         return result.toString();
+    }
+
+    /**
+     * Returns file name without extension (if present).
+     * @return base file name. Ex. file.sql -> file, file.groovy -> file, file -> file
+     */
+    String getFileNameWithoutExtension() {
+        String[] fileNameGroups = this.script.split("\\.");
+        String extension = fileNameGroups[fileNameGroups.length - 1];
+        if (fileNameGroups.length == 1 || extension.equals("fixed") || extension.equals("amended")) {
+            return this.script;
+        }
+        return this.script.substring(0, this.script.length() - (extension.length() + 1));
     }
 }

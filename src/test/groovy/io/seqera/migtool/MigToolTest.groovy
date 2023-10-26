@@ -10,8 +10,7 @@ import spock.lang.Specification
 
 class MigToolTest extends Specification {
 
-
-    def 'should init migtool' () {
+    def setup() {
         given:
         def tool = new MigTool()
             .withDriver('org.h2.Driver')
@@ -41,6 +40,26 @@ class MigToolTest extends Specification {
         conn?.close()
     }
 
+    def cleanup() {
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations('classpath:test')
+        def con = tool.getConnection()
+
+        def stm = con.createStatement()
+
+        stm.execute("DROP TABLE IF EXISTS MIGTOOL_HISTORY;")
+        stm.execute("DROP TABLE IF EXISTS XXX;")
+        stm.execute("DROP TABLE IF EXISTS YYY;")
+        stm.execute("DROP TABLE IF EXISTS ZZZ;")
+        stm.execute("DROP TABLE IF EXISTS FIXED;")
+        stm.execute("DROP TABLE IF EXISTS AMENDED;")
+        stm.close()
+    }
 
     def 'should apply local file migration' () {
         given:
@@ -218,6 +237,553 @@ class MigToolTest extends Specification {
 
         cleanup:
         conn?.close()
+    }
+
+    def 'should apply local file migration with fixes' () {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.fixed.sql').text = 'create table FIXED ( col1 varchar(1) ); '
+        folder.resolve('V02__file2.sql').text = 'create table YYY ( col2 varchar(2) ); create table ZZZ ( col3 varchar(3) );'
+        folder.resolve('V03__file3.sql').text = 'create table FILE3 ( col2 varchar(2) );'
+        folder.resolve('V03__file3.amended.sql').text = 'create table AMENDED ( col2 varchar(2) );'
+        folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==3
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__file2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and:
+        with(tool.fixedEntries[0]) {
+            rank == 1
+            script == 'V01__file1.fixed.sql'
+            statements == ['create table FIXED ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.amendedEntries[0]) {
+            rank == 3
+            script == 'V03__file3.amended.sql'
+            statements == ['create table AMENDED ( col2 varchar(2) );']
+        }
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        def conn = tool.getConnection()
+        conn != null
+        and: 'Should apply base and fixed script'
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'FIXED')
+        and: 'Should apply only amended script'
+        !tool.existTable(conn, 'FILE3')
+        tool.existTable(conn, 'AMENDED')
+        and: 'Rest'
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        and:
+        !tool.existTable(conn, 'FOO')
+
+        cleanup:
+        conn?.close()
+        folder?.deleteDir()
+    }
+
+    def 'should apply local file migration with amend and  without fix to one file' () {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.fixed.sql').text = 'create table FIXED ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.amended.sql').text = 'create table AMENDED ( col2 varchar(2) );'
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==1
+        tool.fixedEntries.size()==1
+        tool.amendedEntries.size()==1
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.fixedEntries[0]) {
+            rank == 1
+            script == 'V01__file1.fixed.sql'
+            statements == ['create table FIXED ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.amendedEntries[0]) {
+            rank == 1
+            script == 'V01__file1.amended.sql'
+            statements == ['create table AMENDED ( col2 varchar(2) );']
+        }
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        def conn = tool.getConnection()
+        conn != null
+        and: 'Should apply amend and fixed script'
+        !tool.existTable(conn, 'XXX')
+        !tool.existTable(conn, 'FIXED')
+        tool.existTable(conn, 'AMENDED')
+
+        cleanup:
+        conn?.close()
+        folder?.deleteDir()
+    }
+
+    def 'should apply fix file during second local file migration' () {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V02__file2.sql').text = 'create table YYY ( col2 varchar(2) ); create table ZZZ ( col3 varchar(3) );'
+        folder.resolve('V03__file3.sql').text = 'create table FILE3 ( col2 varchar(2) );'
+        folder.resolve('V03__file3.amended.sql').text = 'create table AMENDED ( col2 varchar(2) );'
+        folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==3
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__file2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and:
+        tool.fixedEntries.size() == 0
+        and:
+        with(tool.amendedEntries[0]) {
+            rank == 3
+            script == 'V03__file3.amended.sql'
+            statements == ['create table AMENDED ( col2 varchar(2) );']
+        }
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        def conn = tool.getConnection()
+        conn != null
+        and: 'Should apply base'
+        tool.existTable(conn, 'XXX')
+        !tool.existTable(conn, 'FIXED')
+        and: 'Should apply only amended script'
+        !tool.existTable(conn, 'FILE3')
+        tool.existTable(conn, 'AMENDED')
+        and: 'Rest'
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        and:
+        !tool.existTable(conn, 'FOO')
+
+        when: 'close current connection'
+        conn.close()
+        and: 'add fix file to folder and init new connection'
+        folder.resolve('V01__file1.fixed.sql').text = 'create table FIXED ( col1 varchar(1) ); '
+        and: 'init tool with new folder'
+        tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==3
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__file2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and:
+        with(tool.fixedEntries[0]) {
+            rank == 1
+            script == 'V01__file1.fixed.sql'
+            statements == ['create table FIXED ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.amendedEntries[0]) {
+            rank == 3
+            script == 'V03__file3.amended.sql'
+            statements == ['create table AMENDED ( col2 varchar(2) );']
+        }
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        and: 'init connection'
+        conn = tool.getConnection()
+        then:
+        conn != null
+        and: 'Should apply base and fixed script'
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'FIXED')
+        and: 'Should apply only amended script'
+        !tool.existTable(conn, 'FILE3')
+        tool.existTable(conn, 'AMENDED')
+        and: 'Rest'
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        and:
+        !tool.existTable(conn, 'FOO')
+    }
+
+    def 'should not apply amend file during second local file migration' () {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V02__file2.sql').text = 'create table YYY ( col2 varchar(2) ); create table ZZZ ( col3 varchar(3) );'
+        folder.resolve('V03__file3.sql').text = 'create table FILE3 ( col2 varchar(2) );'
+        folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==3
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__file2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and:
+        with(tool.migrationEntries[2]) {
+            rank == 3
+            script == 'V03__file3.sql'
+            statements == ['create table FILE3 ( col2 varchar(2) );']
+        }
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        def conn = tool.getConnection()
+        conn != null
+        and: 'Should apply files without amend'
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'FILE3')
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        !tool.existTable(conn, 'AMENDED')
+        !tool.existTable(conn, 'FOO')
+
+        when: 'close current connection'
+        conn.close()
+        and: 'add amend file to folder and init new connection'
+        folder.resolve('V03__file3.amended.sql').text = 'create table AMENDED ( col2 varchar(2) );'
+        and: 'init tool with new folder'
+        tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==3
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__file2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and: 'should scan amend file'
+        with(tool.amendedEntries[0]) {
+            rank == 3
+            script == 'V03__file3.amended.sql'
+            statements == ['create table AMENDED ( col2 varchar(2) );']
+        }
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        and: 'init connection'
+        conn = tool.getConnection()
+        then:
+        conn != null
+        and: 'Should not apply amend'
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'FILE3')
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        !tool.existTable(conn, 'AMENDED')
+        !tool.existTable(conn, 'FOO')
+    }
+
+    def 'should apply local file migration with fix and amend name variations' () {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1fixed.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V02__fifixedle2.sql').text = 'create table YYY ( col2 varchar(2) ); create table ZZZ ( col3 varchar(3) );'
+        folder.resolve('V03__file1amended.sql').text = 'create table WWW ( col1 varchar(1) ); '
+        folder.resolve('V04__fifamendedixle2.sql').text = 'create table SSS ( col2 varchar(2) );'
+        folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==4
+        tool.fixedEntries.size()==0
+        tool.amendedEntries.size()==0
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1fixed.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__fifixedle2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and:
+        with(tool.migrationEntries[2]) {
+            rank == 3
+            script == 'V03__file1amended.sql'
+            statements == ['create table WWW ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[3]) {
+            rank == 4
+            script == 'V04__fifamendedixle2.sql'
+            statements == ['create table SSS ( col2 varchar(2) );']
+        }
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        def conn = tool.getConnection()
+        conn != null
+        and:
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        and:
+        !tool.existTable(conn, 'FOO')
+
+        cleanup:
+        conn?.close()
+        folder?.deleteDir()
+    }
+
+    def 'should apply class path migration with fix and amend files' () {
+        given:
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("classpath:db/mysql")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==2
+        tool.amendedEntries.size()==1
+        tool.fixedEntries.size()==1
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__mysql1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__mysql2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and:
+        with(tool.amendedEntries[0]) {
+            rank == 1
+            script == 'V01__mysql1.amended.sql'
+            statements == ['create table AMENDED ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.fixedEntries[0]) {
+            rank == 2
+            script == 'V02__mysql2.fixed.sql'
+            statements == ['create table FIXED ( col2 varchar(2) );']
+        }
+
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        def conn = tool.getConnection()
+        conn != null
+        and:
+        !tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'AMENDED')
+        tool.existTable(conn, 'FIXED')
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+
+        cleanup:
+        conn?.close()
+    }
+
+    def 'try to migrate with fix to fixes'() {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.fixed.sql').text = 'create table FIXED ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.fixed.fixed.sql').text = 'create table FIXEDSECOND ( col1 varchar(1) ); '
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==1
+        tool.fixedEntries.size()==1
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.fixedEntries[0]) {
+            rank == 1
+            script == 'V01__file1.fixed.sql'
+            statements == ['create table FIXED ( col1 varchar(1) );']
+        }
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        def conn = tool.getConnection()
+        conn != null
+        and: 'Should apply base and fixed script'
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'FIXED')
+        !tool.existTable(conn, 'FIXEDSECOND')
+
+        cleanup:
+        conn?.close()
+        folder?.deleteDir()
     }
 
 }
