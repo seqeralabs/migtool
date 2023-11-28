@@ -10,6 +10,14 @@ In addition, the migration files can be written in Groovy in order to run script
 Only requirement is that migration files follow the pattern `V99__Some_name.[sql|groovy]`, where 
 `99` can be any integer value.
 
+### Fixed and amended files
+
+Beside files matching pattern mentioned above there is also possibility of creating `.fixed.` or `.amended.`, 
+example: `V99__Some_name.[fixed|amended].[sql|groovy]`.
+These can be useful when the original migration file was somehow broken. `.fixed.` file will be applied when original file was already applied,
+and `.amended.` file will be applied on clean instance where original file wasn't yet applied. These two files should be always created together,
+meaning that there can't be `.fixed.` file without `.amended.` file.
+
 
 ## Get started 
 

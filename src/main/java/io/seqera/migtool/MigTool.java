@@ -321,7 +321,10 @@ public class MigTool {
         else {
             throw new IllegalArgumentException("Invalid locations prefix: " + locations);
         }
+
         log.debug("Scanned {} migration files, {} amended files and {} fixed files", migrationEntries.size(), amendedEntries.size(), fixedEntries.size());
+        if (amendedEntries.size() != fixedEntries.size())
+            throw new IllegalStateException("Sum of fixed and amended files doesn't match. For each fixed file there has to be created amended file.");
     }
 
     private void addEntry(MigRecord entry) {
@@ -407,16 +410,17 @@ public class MigTool {
 
     protected void applyMigrationFix(MigRecord entry) throws SQLException {
         MigRecord fix = findFixedRecord(entry);
-        if (fix != null) {
-            log.info("Detected fix file. Attempt to apply {}", fix.script);
-            if (checkMigrated(fix)) {
-                log.info("DB migration fix already applied: {} {}", fix.rank, fix.script);
-                return;
-            }
-            log.info("DB migration fix {} {} ..", fix.rank, fix.script);
-            int delta = migrate(fix);
-            log.info("DB migration fix performed: {} {} - execution time {}ms {}", fix.rank, fix.script, delta, fix.statements);
+        if (fix == null)
+            return;
+
+        log.info("Detected fix file. Attempt to apply {}", fix.script);
+        if (checkMigrated(fix)) {
+            log.info("DB migration fix already applied: {} {}", fix.rank, fix.script);
+            return;
         }
+        log.info("DB migration fix {} {} ..", fix.rank, fix.script);
+        int delta = migrate(fix);
+        log.info("DB migration fix performed: {} {} - execution time {}ms {}", fix.rank, fix.script, delta, fix.statements);
     }
 
     private int migrate(MigRecord entry) throws SQLException {
