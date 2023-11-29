@@ -10,58 +10,6 @@ import spock.lang.Specification
 
 class MigToolTest extends Specification {
 
-    def setup() {
-        given:
-        def tool = new MigTool()
-            .withDriver('org.h2.Driver')
-            .withDialect('h2')
-            .withUrl('jdbc:h2:mem:test;DB_CLOSE_DELAY=-1') // use DB_CLOSE_DELAY to avoid losing data when the jdbc connection is close
-            .withUser('sa')
-            .withPassword('')
-            .withLocations('classpath:test')
-
-        when:
-        tool.init()
-        then:
-        tool.schema == 'PUBLIC'
-        tool.catalog == 'TEST'
-        and:
-        def conn = tool.getConnection()
-        conn != null
-        and:
-        !tool.existTable(conn, MigTool.MIGTOOL_TABLE)
-
-        when:
-        tool.createIfNotExists()
-        then:
-        tool.existTable(conn, MigTool.MIGTOOL_TABLE)
-
-        cleanup:
-        conn?.close()
-    }
-
-    def cleanup() {
-        def tool = new MigTool()
-                .withDriver('org.h2.Driver')
-                .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
-                .withUser('sa')
-                .withPassword('')
-                .withLocations('classpath:test')
-        def con = tool.getConnection()
-
-        def stm = con.createStatement()
-
-        stm.execute("DROP TABLE IF EXISTS MIGTOOL_HISTORY;")
-        stm.execute("DROP TABLE IF EXISTS XXX;")
-        stm.execute("DROP TABLE IF EXISTS YYY;")
-        stm.execute("DROP TABLE IF EXISTS ZZZ;")
-        stm.execute("DROP TABLE IF EXISTS FIXED;")
-        stm.execute("DROP TABLE IF EXISTS AMENDED;")
-        stm.execute("DROP TABLE IF EXISTS FILE3;")
-        stm.close()
-    }
-
     def 'should apply local file migration' () {
         given:
         def folder = Files.createTempDirectory('test')
@@ -73,7 +21,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test1;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
@@ -120,7 +68,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test2;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("classpath:db/mariadb")
@@ -172,7 +120,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test3;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("classpath:db/mariadb")
@@ -198,7 +146,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test4;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withClassLoader(ClassFromJarWithResources.classLoader)
@@ -240,7 +188,7 @@ class MigToolTest extends Specification {
         conn?.close()
     }
 
-    def 'try to apply local file migration with amend and  without fix to one file' () {
+    def 'try to apply local file migration with amend and without fix to one file' () {
         given:
         def folder = Files.createTempDirectory('test')
         folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
@@ -250,7 +198,30 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test5;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        tool.scanMigrations()
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def 'try to apply local file migration with fix and without amend to one file' () {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.fixed.sql').text = 'create table FIXED ( col1 varchar(1) ); '
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test6;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
@@ -275,7 +246,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test7;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
@@ -307,7 +278,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test8;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
@@ -362,7 +333,7 @@ class MigToolTest extends Specification {
         tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test8;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
@@ -428,7 +399,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test11;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
@@ -481,7 +452,7 @@ class MigToolTest extends Specification {
         tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test11;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
@@ -545,7 +516,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test13;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
@@ -606,7 +577,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test14;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("classpath:db/mysql")
@@ -662,7 +633,7 @@ class MigToolTest extends Specification {
         conn?.close()
     }
 
-    def 'try to migrate with fix to fixes'() {
+    def 'try to migrate with fix having two .fixed suffixes'() {
         given:
         def folder = Files.createTempDirectory('test')
         folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
@@ -673,7 +644,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test15;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
