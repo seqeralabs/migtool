@@ -14,13 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import groovy.lang.Binding;
@@ -324,7 +318,7 @@ public class MigTool {
 
         log.debug("Scanned {} migration files, {} amended files and {} fixed files", migrationEntries.size(), amendedEntries.size(), fixedEntries.size());
         if (amendedEntries.size() != fixedEntries.size())
-            throw new IllegalStateException("Sum of fixed and amended files doesn't match. For each fixed file there has to be created amended file.");
+            throw new IllegalArgumentException("Sum of fixed and amended files doesn't match. For each fixed file there has to be created amended file.");
     }
 
     private void addEntry(MigRecord entry) {
@@ -384,13 +378,18 @@ public class MigTool {
     }
 
     protected void applyMigration(MigRecord entry) throws SQLException {
+        MigRecord amendEntry = findAmendedRecord(entry);
+        MigRecord fix = findFixedRecord(entry);
+
+        if (!Objects.isNull(amendEntry) == Objects.isNull(fix))
+            throw new IllegalArgumentException(String.format("File %s contains only one from amended/fixed files. These files should always exist together.", entry.script));
+
         if (checkMigrated(entry)) {
             log.info("DB migration already applied: {} {}", entry.rank, entry.script);
-            applyMigrationFix(entry);
+            applyMigrationFix(entry, fix);
             return;
         }
 
-        MigRecord amendEntry = findAmendedRecord(entry);
         if (amendEntry != null) {
             log.info("Detected amend file. Attempt to apply {} instead of {}", amendEntry.script, entry.script);
             if (checkMigrated(amendEntry)) {
@@ -405,11 +404,10 @@ public class MigTool {
         int delta = migrate(entry);
         log.info("DB migration performed: {} {} - execution time {}ms {}", entry.rank, entry.script, delta, entry.statements);
         if (!entry.isAmended())
-            applyMigrationFix(entry);
+            applyMigrationFix(entry, fix);
     }
 
-    protected void applyMigrationFix(MigRecord entry) throws SQLException {
-        MigRecord fix = findFixedRecord(entry);
+    protected void applyMigrationFix(MigRecord entry, MigRecord fix) throws SQLException {
         if (fix == null)
             return;
 
