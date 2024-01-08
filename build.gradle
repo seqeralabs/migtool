@@ -20,7 +20,7 @@ group = 'io.seqera'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
@@ -128,6 +128,10 @@ graalvmNative {
             buildArgs.add('-H:IncludeResources=.*/TlsSettings.properties$')
             buildArgs.add('-H:+StaticExecutableWithDynamicLibC')
             buildArgs.add('-H:+PrintClassInitialization')
+
+            javaLauncher = javaToolchains.launcherFor {
+                languageVersion = JavaLanguageVersion.of(17)
+            }
         }
     }
 }
