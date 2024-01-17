@@ -23,6 +23,7 @@ If you have broken migration scripts, you can use the migration tool to add fixe
 > **Warning**
 >
 > The original file should always have both a fixed file and an amended file. It's not possible to have one without the other.
+> There can be only one pair of fixed and amended files.
 
 ## Get started 
 
