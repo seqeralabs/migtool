@@ -12,12 +12,17 @@ Only requirement is that migration files follow the pattern `V99__Some_name.[sql
 
 ### Fixed and amended files
 
-Beside files matching pattern mentioned above there is also possibility of creating `.fixed.` or `.amended.`, 
-example: `V99__Some_name.[fixed|amended].[sql|groovy]`.
-These can be useful when the original migration file was somehow broken. `.fixed.` file will be applied when original file was already applied,
-and `.amended.` file will be applied on clean instance where original file wasn't yet applied. These two files should be always created together,
-meaning that there can't be `.fixed.` file without `.amended.` file.
+If you have broken migration scripts, you can use the migration tool to add fixed and amended files to existing migration files. These two files are always created together.
 
+1. If the broken file has already been applied, a fixed file will be used. The fixed file name should follow this pattern:
+   `V99_file_to_fix.fixed.[sql|groovy]`
+
+2. If the broken file hasn't been applied, an amended file will be used instead of the original file. The amended file name should follow this pattern:
+   `V99_file_to_fix.amended.[sql|groovy]`
+
+> **Warning**
+>
+> The original file should always have both a fixed file and an amended file. It's not possible to have one without the other.
 
 ## Get started 
 
