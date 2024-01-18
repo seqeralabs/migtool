@@ -188,11 +188,11 @@ class MigToolTest extends Specification {
         conn?.close()
     }
 
-    def 'try to apply local file migration with amend and without fix to one file' () {
+    def 'try to apply local file migration with override and without patch to one file' () {
         given:
         def folder = Files.createTempDirectory('test')
         folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
-        folder.resolve('V01__file1.amended.sql').text = 'create table AMENDED ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.override.sql').text = 'create table OVERRIDE ( col1 varchar(1) ); '
         and:
 
         def tool = new MigTool()
@@ -211,11 +211,11 @@ class MigToolTest extends Specification {
         thrown(IllegalArgumentException)
     }
 
-    def 'try to apply local file migration with fix and without amend to one file' () {
+    def 'try to apply local file migration with patch and without override to one file' () {
         given:
         def folder = Files.createTempDirectory('test')
         folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
-        folder.resolve('V01__file1.fixed.sql').text = 'create table FIXED ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.patch.sql').text = 'create table PATCH ( col1 varchar(1) ); '
         and:
 
         def tool = new MigTool()
@@ -234,13 +234,13 @@ class MigToolTest extends Specification {
         thrown(IllegalArgumentException)
     }
 
-    def 'try to apply local file migration with amend and  without fix to one file but fix file to another' () {
+    def 'try to apply local file migration with override and  without patch to one file but patch file to another' () {
         given:
         def folder = Files.createTempDirectory('test')
         folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
-        folder.resolve('V01__file1.amended.sql').text = 'create table AMENDED ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.override.sql').text = 'create table OVERRIDE ( col1 varchar(1) ); '
         folder.resolve('V02__file2.sql').text = 'create table YYY ( col1 varchar(1) ); '
-        folder.resolve('V02__file2.fixed.sql').text = 'create table FIXED ( col1 varchar(1) ); '
+        folder.resolve('V02__file2.patch.sql').text = 'create table PATCH ( col1 varchar(1) ); '
         and:
 
         def tool = new MigTool()
@@ -266,7 +266,7 @@ class MigToolTest extends Specification {
         thrown(IllegalArgumentException)
     }
 
-    def 'should apply fix file during second local file migration' () {
+    def 'should apply patch file during second local file migration' () {
         given:
         def folder = Files.createTempDirectory('test')
         folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
@@ -302,9 +302,9 @@ class MigToolTest extends Specification {
             statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
         }
         and:
-        tool.fixedEntries.size() == 0
+        tool.patchEntries.size() == 0
         and:
-        tool.amendedEntries.size() == 0
+        tool.overrideEntries.size() == 0
 
         when:
         tool.createIfNotExists()
@@ -314,10 +314,10 @@ class MigToolTest extends Specification {
         conn != null
         and: 'Should apply base'
         tool.existTable(conn, 'XXX')
-        !tool.existTable(conn, 'FIXED')
-        and: 'Should apply only amended script'
+        !tool.existTable(conn, 'PATCH')
+        and: 'Should apply only OVERRIDE script'
         tool.existTable(conn, 'FILE3')
-        !tool.existTable(conn, 'AMENDED')
+        !tool.existTable(conn, 'OVERRIDE')
         and: 'Rest'
         tool.existTable(conn, 'YYY')
         tool.existTable(conn, 'ZZZ')
@@ -326,9 +326,9 @@ class MigToolTest extends Specification {
 
         when: 'close current connection'
         conn.close()
-        and: 'add fix file to folder and init new connection'
-        folder.resolve('V01__file1.fixed.sql').text = 'create table FIXED ( col1 varchar(1) ); '
-        folder.resolve('V01__file1.amended.sql').text = 'create table AMENDED ( col2 varchar(2) );'
+        and: 'add patch file to folder and init new connection'
+        folder.resolve('V01__file1.patch.sql').text = 'create table PATCH ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.override.sql').text = 'create table OVERRIDE ( col2 varchar(2) );'
         and: 'init tool with new folder'
         tool = new MigTool()
                 .withDriver('org.h2.Driver')
@@ -356,16 +356,16 @@ class MigToolTest extends Specification {
             statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
         }
         and:
-        with(tool.fixedEntries[0]) {
+        with(tool.patchEntries[0]) {
             rank == 1
-            script == 'V01__file1.fixed.sql'
-            statements == ['create table FIXED ( col1 varchar(1) );']
+            script == 'V01__file1.patch.sql'
+            statements == ['create table PATCH ( col1 varchar(1) );']
         }
         and:
-        with(tool.amendedEntries[0]) {
+        with(tool.overrideEntries[0]) {
             rank == 1
-            script == 'V01__file1.amended.sql'
-            statements == ['create table AMENDED ( col2 varchar(2) );']
+            script == 'V01__file1.override.sql'
+            statements == ['create table OVERRIDE ( col2 varchar(2) );']
         }
         when:
         tool.createIfNotExists()
@@ -374,12 +374,12 @@ class MigToolTest extends Specification {
         conn = tool.getConnection()
         then:
         conn != null
-        and: 'Should apply base and fixed script'
+        and: 'Should apply base and PATCH script'
         tool.existTable(conn, 'XXX')
-        tool.existTable(conn, 'FIXED')
-        and: 'Should apply only amended script'
+        tool.existTable(conn, 'PATCH')
+        and: 'Should apply only OVERRIDE script'
         tool.existTable(conn, 'FILE3')
-        !tool.existTable(conn, 'AMENDED')
+        !tool.existTable(conn, 'OVERRIDE')
         and: 'Rest'
         tool.existTable(conn, 'YYY')
         tool.existTable(conn, 'ZZZ')
@@ -387,7 +387,7 @@ class MigToolTest extends Specification {
         !tool.existTable(conn, 'FOO')
     }
 
-    def 'should not apply amend file during second local file migration' () {
+    def 'should not apply override file during second local file migration' () {
         given:
         def folder = Files.createTempDirectory('test')
         folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
@@ -435,19 +435,19 @@ class MigToolTest extends Specification {
         then:
         def conn = tool.getConnection()
         conn != null
-        and: 'Should apply files without amend'
+        and: 'Should apply files without override'
         tool.existTable(conn, 'XXX')
         tool.existTable(conn, 'FILE3')
         tool.existTable(conn, 'YYY')
         tool.existTable(conn, 'ZZZ')
-        !tool.existTable(conn, 'AMENDED')
+        !tool.existTable(conn, 'OVERRIDE')
         !tool.existTable(conn, 'FOO')
 
         when: 'close current connection'
         conn.close()
-        and: 'add amend file to folder and init new connection'
-        folder.resolve('V03__file3.amended.sql').text = 'create table AMENDED ( col2 varchar(2) );'
-        folder.resolve('V03__file3.fixed.sql').text = 'create table FIXED ( col2 varchar(2) );'
+        and: 'add override file to folder and init new connection'
+        folder.resolve('V03__file3.override.sql').text = 'create table OVERRIDE ( col2 varchar(2) );'
+        folder.resolve('V03__file3.patch.sql').text = 'create table PATCH ( col2 varchar(2) );'
         and: 'init tool with new folder'
         tool = new MigTool()
                 .withDriver('org.h2.Driver')
@@ -474,17 +474,17 @@ class MigToolTest extends Specification {
             script == 'V02__file2.sql'
             statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
         }
-        and: 'should scan amend file'
-        with(tool.amendedEntries[0]) {
+        and: 'should scan override file'
+        with(tool.overrideEntries[0]) {
             rank == 3
-            script == 'V03__file3.amended.sql'
-            statements == ['create table AMENDED ( col2 varchar(2) );']
+            script == 'V03__file3.override.sql'
+            statements == ['create table OVERRIDE ( col2 varchar(2) );']
         }
-        and: 'should scan fix file'
-        with(tool.fixedEntries[0]) {
+        and: 'should scan patch file'
+        with(tool.patchEntries[0]) {
             rank == 3
-            script == 'V03__file3.fixed.sql'
-            statements == ['create table FIXED ( col2 varchar(2) );']
+            script == 'V03__file3.patch.sql'
+            statements == ['create table PATCH ( col2 varchar(2) );']
         }
         when:
         tool.createIfNotExists()
@@ -493,23 +493,23 @@ class MigToolTest extends Specification {
         conn = tool.getConnection()
         then:
         conn != null
-        and: 'Should not apply amend'
+        and: 'Should not apply override'
         tool.existTable(conn, 'XXX')
         tool.existTable(conn, 'FILE3')
         tool.existTable(conn, 'YYY')
         tool.existTable(conn, 'ZZZ')
-        !tool.existTable(conn, 'AMENDED')
-        tool.existTable(conn, 'FIXED')
+        !tool.existTable(conn, 'OVERRIDE')
+        tool.existTable(conn, 'PATCH')
         !tool.existTable(conn, 'FOO')
     }
 
-    def 'should apply local file migration with fix and amend name variations' () {
+    def 'should apply local file migration with patch and override name variations' () {
         given:
         def folder = Files.createTempDirectory('test')
-        folder.resolve('V01__file1fixed.sql').text = 'create table XXX ( col1 varchar(1) ); '
-        folder.resolve('V02__fifixedle2.sql').text = 'create table YYY ( col2 varchar(2) ); create table ZZZ ( col3 varchar(3) );'
-        folder.resolve('V03__file1amended.sql').text = 'create table WWW ( col1 varchar(1) ); '
-        folder.resolve('V04__fifamendedixle2.sql').text = 'create table SSS ( col2 varchar(2) );'
+        folder.resolve('V01__file1patch.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V02__fiPATCHle2.sql').text = 'create table YYY ( col2 varchar(2) ); create table ZZZ ( col3 varchar(3) );'
+        folder.resolve('V03__file1override.sql').text = 'create table WWW ( col1 varchar(1) ); '
+        folder.resolve('V04__fifOVERRIDEixle2.sql').text = 'create table SSS ( col2 varchar(2) );'
         folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
         and:
 
@@ -527,30 +527,30 @@ class MigToolTest extends Specification {
         tool.scanMigrations()
         then:
         tool.migrationEntries.size()==4
-        tool.fixedEntries.size()==0
-        tool.amendedEntries.size()==0
+        tool.patchEntries.size()==0
+        tool.overrideEntries.size()==0
         and:
         with(tool.migrationEntries[0]) {
             rank == 1
-            script == 'V01__file1fixed.sql'
+            script == 'V01__file1patch.sql'
             statements == ['create table XXX ( col1 varchar(1) );']
         }
         and:
         with(tool.migrationEntries[1]) {
             rank == 2
-            script == 'V02__fifixedle2.sql'
+            script == 'V02__fiPATCHle2.sql'
             statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
         }
         and:
         with(tool.migrationEntries[2]) {
             rank == 3
-            script == 'V03__file1amended.sql'
+            script == 'V03__file1override.sql'
             statements == ['create table WWW ( col1 varchar(1) );']
         }
         and:
         with(tool.migrationEntries[3]) {
             rank == 4
-            script == 'V04__fifamendedixle2.sql'
+            script == 'V04__fifOVERRIDEixle2.sql'
             statements == ['create table SSS ( col2 varchar(2) );']
         }
 
@@ -572,7 +572,7 @@ class MigToolTest extends Specification {
         folder?.deleteDir()
     }
 
-    def 'should apply class path migration with fix and amend files' () {
+    def 'should apply class path migration with patch and override files' () {
         given:
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
@@ -588,8 +588,8 @@ class MigToolTest extends Specification {
         tool.scanMigrations()
         then:
         tool.migrationEntries.size()==2
-        tool.amendedEntries.size()==1
-        tool.fixedEntries.size()==1
+        tool.overrideEntries.size()==1
+        tool.patchEntries.size()==1
         and:
         with(tool.migrationEntries[0]) {
             rank == 1
@@ -603,16 +603,16 @@ class MigToolTest extends Specification {
             statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
         }
         and:
-        with(tool.amendedEntries[0]) {
+        with(tool.overrideEntries[0]) {
             rank == 1
-            script == 'V01__mysql1.amended.sql'
-            statements == ['create table AMENDED ( col1 varchar(1) );']
+            script == 'V01__mysql1.override.sql'
+            statements == ['create table OVERRIDE ( col1 varchar(1) );']
         }
         and:
-        with(tool.fixedEntries[0]) {
+        with(tool.patchEntries[0]) {
             rank == 1
-            script == 'V01__mysql1.fixed.sql'
-            statements == ['create table FIXED ( col2 varchar(2) );']
+            script == 'V01__mysql1.patch.sql'
+            statements == ['create table PATCH ( col2 varchar(2) );']
         }
 
 
@@ -624,8 +624,8 @@ class MigToolTest extends Specification {
         conn != null
         and:
         !tool.existTable(conn, 'XXX')
-        tool.existTable(conn, 'AMENDED')
-        !tool.existTable(conn, 'FIXED')
+        tool.existTable(conn, 'OVERRIDE')
+        !tool.existTable(conn, 'PATCH')
         tool.existTable(conn, 'YYY')
         tool.existTable(conn, 'ZZZ')
 
@@ -633,12 +633,12 @@ class MigToolTest extends Specification {
         conn?.close()
     }
 
-    def 'try to migrate with fix having two .fixed suffixes'() {
+    def 'try to migrate with patch having two .PATCH suffixes'() {
         given:
         def folder = Files.createTempDirectory('test')
         folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
-        folder.resolve('V01__file1.fixed.sql').text = 'create table FIXED ( col1 varchar(1) ); '
-        folder.resolve('V01__file1.fixed.fixed.sql').text = 'create table FIXEDSECOND ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.patch.sql').text = 'create table PATCH ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.PATCH.patch.sql').text = 'create table PATCHSECOND ( col1 varchar(1) ); '
         and:
 
         def tool = new MigTool()

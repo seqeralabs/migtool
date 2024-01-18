@@ -94,8 +94,8 @@ class MigRecordTest extends Specification {
         folder.resolve('V02__file2.txt').text = 'create table YYY ( col2 varchar(2) );; update table YYY; '
         folder.resolve('V03__file3.groovy').text = 'create table ZZZ ( col3 varchar(3) ); '
         folder.resolve('V04__file4').text = 'create table WWW ( col2 varchar(2) );'
-        folder.resolve('V04__file4.fixed').text = 'create table FIXED ( col2 varchar(2) );'
-        folder.resolve('V04__file4.amended').text = 'create table AMENDED ( col2 varchar(2) );'
+        folder.resolve('V04__file4.patch').text = 'create table PATCH ( col2 varchar(2) );'
+        folder.resolve('V04__file4.override').text = 'create table OVERRIDE ( col2 varchar(2) );'
 
         when:
         def entry1 = MigRecord.parseFilePath(folder.resolve('V01__file1.sql'), null)
@@ -134,21 +134,21 @@ class MigRecordTest extends Specification {
         entry4.getFileNameWithoutExtension() == 'V04__file4'
         when:
 
-        def entry5 = MigRecord.parseFilePath(folder.resolve('V04__file4.fixed'), null)
+        def entry5 = MigRecord.parseFilePath(folder.resolve('V04__file4.patch'), null)
         then:
         entry5.rank == 4
-        entry5.script == 'V04__file4.fixed'
-        entry5.statements == ['create table FIXED ( col2 varchar(2) );']
-        entry5.checksum == '8d99238ff479f22921b4209f9cef3385cfa6f2ab8087c0945516857f53ea7078'
-        entry5.getFileNameWithoutExtension() == 'V04__file4.fixed'
+        entry5.script == 'V04__file4.patch'
+        entry5.statements == ['create table PATCH ( col2 varchar(2) );']
+        entry5.checksum == 'c84db547742075f892437129d248e08a193c36d863bd8d6602de7071f7d4221d'
+        entry5.getFileNameWithoutExtension() == 'V04__file4.patch'
         when:
-        def entry6 = MigRecord.parseFilePath(folder.resolve('V04__file4.amended'), null)
+        def entry6 = MigRecord.parseFilePath(folder.resolve('V04__file4.override'), null)
         then:
         entry6.rank == 4
-        entry6.script == 'V04__file4.amended'
-        entry6.statements == ['create table AMENDED ( col2 varchar(2) );']
-        entry6.checksum == '3b875f8d7c96165c8ee2d0f467f3744391373c33d992492771b72f37da50ccf7'
-        entry6.getFileNameWithoutExtension() == 'V04__file4.amended'
+        entry6.script == 'V04__file4.override'
+        entry6.statements == ['create table OVERRIDE ( col2 varchar(2) );']
+        entry6.checksum == '18b20974888e28e3cf16aefdc37216c02b98c8ba4c4532fcdc839dc6965f48c6'
+        entry6.getFileNameWithoutExtension() == 'V04__file4.override'
 
         cleanup:
         folder?.deleteDir();

@@ -56,13 +56,13 @@ public class MigTool {
     String catalog;
 
     private final List<MigRecord> migrationEntries;
-    private final List<MigRecord> fixedEntries;
-    private final List<MigRecord> amendedEntries;
+    private final List<MigRecord> patchEntries;
+    private final List<MigRecord> overrideEntries;
 
     public MigTool() {
         this.migrationEntries = new ArrayList<>();
-        this.fixedEntries = new ArrayList<>();
-        this.amendedEntries = new ArrayList<>();
+        this.patchEntries = new ArrayList<>();
+        this.overrideEntries = new ArrayList<>();
     }
 
     public MigTool withDriver(String driver) {
@@ -155,12 +155,12 @@ public class MigTool {
         return migrationEntries;
     }
 
-    List<MigRecord> getFixedEntries() {
-        return fixedEntries;
+    List<MigRecord> getPatchEntries() {
+        return patchEntries;
     }
 
-    List<MigRecord> getAmendedEntries() {
-        return amendedEntries;
+    List<MigRecord> getOverrideEntries() {
+        return overrideEntries;
     }
 
     /**
@@ -316,16 +316,16 @@ public class MigTool {
             throw new IllegalArgumentException("Invalid locations prefix: " + locations);
         }
 
-        log.debug("Scanned {} migration files, {} amended files and {} fixed files", migrationEntries.size(), amendedEntries.size(), fixedEntries.size());
-        if (amendedEntries.size() != fixedEntries.size())
-            throw new IllegalArgumentException("Sum of fixed and amended files doesn't match. For each fixed file there has to be created amended file.");
+        log.debug("Scanned {} migration files, {} override files and {} patch files", migrationEntries.size(), overrideEntries.size(), patchEntries.size());
+        if (overrideEntries.size() != patchEntries.size())
+            throw new IllegalArgumentException("Sum of patch and override files doesn't match. For each patch file there has to be created override file.");
     }
 
     private void addEntry(MigRecord entry) {
-        if(entry.isAmended())
-            this.amendedEntries.add(entry);
-        else if(entry.isFixed())
-            this.fixedEntries.add(entry);
+        if(entry.isOverride())
+            this.overrideEntries.add(entry);
+        else if(entry.isPatch())
+            this.patchEntries.add(entry);
         else
             this.migrationEntries.add(entry);
     }
@@ -362,12 +362,12 @@ public class MigTool {
         }
     }
 
-    MigRecord findFixedRecord(MigRecord entry) {
-        return findRelatedRecordInCollection(fixedEntries, entry);
+    MigRecord findPatchRecord(MigRecord entry) {
+        return findRelatedRecordInCollection(patchEntries, entry);
     }
 
-    MigRecord findAmendedRecord(MigRecord entry) {
-        return findRelatedRecordInCollection(amendedEntries, entry);
+    MigRecord findOverrideRecord(MigRecord entry) {
+        return findRelatedRecordInCollection(overrideEntries, entry);
     }
 
     private MigRecord findRelatedRecordInCollection(List<MigRecord> records, MigRecord entry) {
@@ -378,47 +378,47 @@ public class MigTool {
     }
 
     protected void applyMigration(MigRecord entry) throws SQLException {
-        MigRecord amendEntry = findAmendedRecord(entry);
-        MigRecord fix = findFixedRecord(entry);
+        MigRecord overrideEntry = findOverrideRecord(entry);
+        MigRecord patch = findPatchRecord(entry);
 
-        if (!Objects.isNull(amendEntry) == Objects.isNull(fix))
-            throw new IllegalArgumentException(String.format("File %s contains only one from amended/fixed files. These files should always exist together.", entry.script));
+        if (!Objects.isNull(overrideEntry) == Objects.isNull(patch))
+            throw new IllegalArgumentException(String.format("File %s contains only one from override/patch files. These files should always exist together.", entry.script));
 
         if (checkMigrated(entry)) {
             log.info("DB migration already applied: {} {}", entry.rank, entry.script);
-            applyMigrationFix(entry, fix);
+            applyMigrationPatch(entry, patch);
             return;
         }
 
-        if (amendEntry != null) {
-            log.info("Detected amend file. Attempt to apply {} instead of {}", amendEntry.script, entry.script);
-            if (checkMigrated(amendEntry)) {
-                log.info("DB migration amend already applied: {} {}", amendEntry.rank, amendEntry.script);
+        if (overrideEntry != null) {
+            log.info("Detected override file. Attempt to apply {} instead of {}", overrideEntry.script, entry.script);
+            if (checkMigrated(overrideEntry)) {
+                log.info("DB migration override already applied: {} {}", overrideEntry.rank, overrideEntry.script);
                 return;
             }
-            entry = amendEntry;
+            entry = overrideEntry;
         }
 
         checkRank(entry);
         log.info("DB migration {} {} ..", entry.rank, entry.script);
         int delta = migrate(entry);
         log.info("DB migration performed: {} {} - execution time {}ms {}", entry.rank, entry.script, delta, entry.statements);
-        if (!entry.isAmended())
-            applyMigrationFix(entry, fix);
+        if (!entry.isOverride())
+            applyMigrationPatch(entry, patch);
     }
 
-    protected void applyMigrationFix(MigRecord entry, MigRecord fix) throws SQLException {
-        if (fix == null)
+    protected void applyMigrationPatch(MigRecord entry, MigRecord patch) throws SQLException {
+        if (patch == null)
             return;
 
-        log.info("Detected fix file. Attempt to apply {}", fix.script);
-        if (checkMigrated(fix)) {
-            log.info("DB migration fix already applied: {} {}", fix.rank, fix.script);
+        log.info("Detected patch file. Attempt to apply {}", patch.script);
+        if (checkMigrated(patch)) {
+            log.info("DB migration patch already applied: {} {}", patch.rank, patch.script);
             return;
         }
-        log.info("DB migration fix {} {} ..", fix.rank, fix.script);
-        int delta = migrate(fix);
-        log.info("DB migration fix performed: {} {} - execution time {}ms {}", fix.rank, fix.script, delta, fix.statements);
+        log.info("DB migration patch {} {} ..", patch.rank, patch.script);
+        int delta = migrate(patch);
+        log.info("DB migration patch performed: {} {} - execution time {}ms {}", patch.rank, patch.script, delta, patch.statements);
     }
 
     private int migrate(MigRecord entry) throws SQLException {

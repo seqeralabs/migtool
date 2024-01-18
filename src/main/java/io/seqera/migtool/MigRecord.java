@@ -28,8 +28,8 @@ class MigRecord implements Comparable<MigRecord> {
     }
 
     static final Pattern DEFAULT_PATTERN = Pattern.compile("^V(\\d+)__(.+)");
-    static final Pattern AMENDED_PATTERN = Pattern.compile("\\.amended");
-    static final Pattern FIXED_PATTERN = Pattern.compile("\\.fixed");
+    static final Pattern OVERRIDE_PATTERN = Pattern.compile("\\.override");
+    static final Pattern PATCH_PATTERN = Pattern.compile("\\.patch");
 
     int rank;
     String script;
@@ -37,8 +37,8 @@ class MigRecord implements Comparable<MigRecord> {
     String checksum;
     List<String> statements;
 
-    boolean isFixed;
-    boolean isAmended;
+    boolean isPatch;
+    boolean isOverride;
 
     @Override
     public int compareTo(MigRecord other) {
@@ -62,10 +62,10 @@ class MigRecord implements Comparable<MigRecord> {
         }
 
         // We do not allow files with double fix or amend, ex. V01__organisation.fixed.fixed.sql
-        if (countMatch(fileName, AMENDED_PATTERN) > 1) {
+        if (countMatch(fileName, OVERRIDE_PATTERN) > 1) {
             return null;
         }
-        if (countMatch(fileName, FIXED_PATTERN) > 1) {
+        if (countMatch(fileName, PATCH_PATTERN) > 1) {
             return null;
         }
 
@@ -86,10 +86,10 @@ class MigRecord implements Comparable<MigRecord> {
         }
 
         // We do not allow files with double fix or amend, ex. V01__organisation.fixed.fixed.sql
-        if (countMatch(fileName, AMENDED_PATTERN) > 1) {
+        if (countMatch(fileName, OVERRIDE_PATTERN) > 1) {
             return null;
         }
-        if (countMatch(fileName, FIXED_PATTERN) > 1) {
+        if (countMatch(fileName, PATCH_PATTERN) > 1) {
             return null;
         }
 
@@ -103,12 +103,12 @@ class MigRecord implements Comparable<MigRecord> {
         return pattern.matcher(name).results().count();
     }
 
-    protected boolean isFixed() {
-        return this.isFixed;
+    protected boolean isPatch() {
+        return this.isPatch;
     }
 
-    protected boolean isAmended() {
-        return this.isAmended;
+    protected boolean isOverride() {
+        return this.isOverride;
     }
 
     private static MigRecord createRecord(String fileName, int rank, String content) {
@@ -122,8 +122,8 @@ class MigRecord implements Comparable<MigRecord> {
 
         entry.checksum = Helper.computeSha256(join(entry.statements));
 
-        entry.isFixed = countMatch(fileName, FIXED_PATTERN) == 1;
-        entry.isAmended = countMatch(fileName, AMENDED_PATTERN) == 1;
+        entry.isPatch = countMatch(fileName, PATCH_PATTERN) == 1;
+        entry.isOverride = countMatch(fileName, OVERRIDE_PATTERN) == 1;
 
         return entry;
     }
@@ -168,7 +168,7 @@ class MigRecord implements Comparable<MigRecord> {
     String getFileNameWithoutExtension() {
         String[] fileNameGroups = this.script.split("\\.");
         String extension = fileNameGroups[fileNameGroups.length - 1];
-        if (fileNameGroups.length == 1 || extension.equals("fixed") || extension.equals("amended")) {
+        if (fileNameGroups.length == 1 || extension.equals("patch") || extension.equals("override")) {
             return this.script;
         }
         return this.script.substring(0, this.script.length() - (extension.length() + 1));

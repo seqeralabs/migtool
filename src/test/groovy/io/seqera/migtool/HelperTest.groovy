@@ -10,13 +10,13 @@ class HelperTest extends Specification {
 
     def 'should load resources' () {
         expect:
-        Helper.getResourceFiles('/db/mysql') == ['/db/mysql/V01__mysql1.sql', '/db/mysql/file1.sql', '/db/mysql/V01__mysql1.fixed.sql', '/db/mysql/V01__mysql1.amended.sql', '/db/mysql/V02__mysql2.sql'].toSet()
+        Helper.getResourceFiles('/db/mysql') == ['/db/mysql/V01__mysql1.sql', '/db/mysql/file1.sql', '/db/mysql/V01__mysql1.patch.sql', '/db/mysql/V01__mysql1.override.sql', '/db/mysql/V02__mysql2.sql'].toSet()
         Helper.getResourceFiles('/db/mariadb') == ['/db/mariadb/V01__maria1.sql', '/db/mariadb/V02__maria2.sql', '/db/mariadb/V03__maria3.groovy', '/db/mariadb/v01-foo.txt'].toSet()
         and:
-        Helper.getResourceFiles('/db/mysql/') == ['/db/mysql/V01__mysql1.sql', '/db/mysql/file1.sql', '/db/mysql/V01__mysql1.fixed.sql', '/db/mysql/V01__mysql1.amended.sql', '/db/mysql/V02__mysql2.sql'].toSet()
+        Helper.getResourceFiles('/db/mysql/') == ['/db/mysql/V01__mysql1.sql', '/db/mysql/file1.sql', '/db/mysql/V01__mysql1.patch.sql', '/db/mysql/V01__mysql1.override.sql', '/db/mysql/V02__mysql2.sql'].toSet()
         Helper.getResourceFiles('/db/mariadb/') == ['/db/mariadb/V01__maria1.sql', '/db/mariadb/V02__maria2.sql', '/db/mariadb/V03__maria3.groovy', '/db/mariadb/v01-foo.txt'].toSet()
         and:
-        Helper.getResourceFiles('db/mysql') == ['db/mysql/V01__mysql1.sql', 'db/mysql/V02__mysql2.sql', 'db/mysql/V01__mysql1.amended.sql', 'db/mysql/V01__mysql1.fixed.sql', 'db/mysql/file1.sql'].toSet()
+        Helper.getResourceFiles('db/mysql') == ['db/mysql/V01__mysql1.sql', 'db/mysql/V02__mysql2.sql', 'db/mysql/V01__mysql1.override.sql', 'db/mysql/V01__mysql1.patch.sql', 'db/mysql/file1.sql'].toSet()
         Helper.getResourceFiles('db/mariadb') == ['db/mariadb/V01__maria1.sql', 'db/mariadb/V02__maria2.sql', 'db/mariadb/V03__maria3.groovy', 'db/mariadb/v01-foo.txt'].toSet()
     }
 

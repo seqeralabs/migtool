@@ -10,20 +10,20 @@ In addition, the migration files can be written in Groovy in order to run script
 Only requirement is that migration files follow the pattern `V99__Some_name.[sql|groovy]`, where 
 `99` can be any integer value.
 
-### Fixed and amended files
+### Patch and override files
 
-If you have broken migration scripts, you can use the migration tool to add fixed and amended files to existing migration files. These two files are always created together.
+If you have broken migration scripts, you can use the migration tool to add patch and override files to existing migration files. These two files are always created together.
 
-1. If the broken file has already been applied, a fixed file will be used. The fixed file name should follow this pattern:
-   `V99_file_to_fix.fixed.[sql|groovy]`
+1. If the broken file has already been applied, a patch file will be used. The patch file name should follow this pattern:
+   `V99_file_to_fix.patch.[sql|groovy]`
 
-2. If the broken file hasn't been applied, an amended file will be used instead of the original file. The amended file name should follow this pattern:
-   `V99_file_to_fix.amended.[sql|groovy]`
+2. If the broken file hasn't been applied, an override file will be used instead of the original file. The override file name should follow this pattern:
+   `V99_file_to_fix.override.[sql|groovy]`
 
 > **Warning**
 >
-> The original file should always have both a fixed file and an amended file. It's not possible to have one without the other.
-> There can be only one pair of fixed and amended files.
+> The original file should always have both a patch file and an override file. It's not possible to have one without the other.
+> There can be only one pair of patch and override files.
 
 ## Get started 
 
