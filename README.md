@@ -12,11 +12,11 @@ Only requirement is that migration files follow the pattern `V99__Some_name.[sql
 
 ### Patch and override files
 
-For each migration file that needs to be corrected a pair of `.path` and `.override` must exists. 
+For each migration file that needs to be corrected a pair of `.patch.sql` and `.override.sql` must exists. 
 
 The behaviour will follow these rules:
-- **WHEN** file.sql exists and was executed **AND** file.patch.sql, file.override.sql pair exists -> apply patch
-- **WHEN** file.sql exists and was not executed **AND** file.patch.sql, file.override.sql pair exists -> apply override
+- **WHEN** file`.sql` exists and was executed **AND** file`.patch.sql`, file.override.sql pair exists -> apply patch
+- **WHEN** file`.sql` exists and was not executed **AND** file`.patch.sql`, file`.override.sql` pair exists -> apply override
 
 If for a given file there is only either a single .patch or a single .override then the tool will throw an illegal state exception stopping the migration process
 
