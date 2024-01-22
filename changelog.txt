@@ -1,5 +1,7 @@
 MIGTOOL CHANGE-LOG
 ===================
+1.5.0 - 22 Jan 2024
+- Add support for patch and override files
 
 1.4.0 - 19 Sep 2022
 - Adds the possibility to run groovy based migration scripts
