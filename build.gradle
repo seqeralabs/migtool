@@ -22,6 +22,11 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
     }
+
+    compileJava {
+        // Set binary compatibility for Java compiler to 11, as it's used as a convention across all projects
+        options.release.set(11)
+    }
 }
 
 repositories {
@@ -116,6 +121,7 @@ graalvmNative {
             imageName = 'migtool'
             mainClass = 'io.seqera.migtool.App'
             configurationFileDirectories.from(file('conf'))
+
 
             buildArgs(org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isLinux() ? ['--static', ] : [])
             buildArgs.add('--allow-incomplete-classpath')
