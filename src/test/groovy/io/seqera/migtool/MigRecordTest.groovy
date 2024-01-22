@@ -87,6 +87,73 @@ class MigRecordTest extends Specification {
         folder?.deleteDir()
     }
 
+    def 'should parse any file entry and return proper file name without extension' (){
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V02__file2.txt').text = 'create table YYY ( col2 varchar(2) );; update table YYY; '
+        folder.resolve('V03__file3.groovy').text = 'create table ZZZ ( col3 varchar(3) ); '
+        folder.resolve('V04__file4').text = 'create table WWW ( col2 varchar(2) );'
+        folder.resolve('V04__file4.patch').text = 'create table PATCH ( col2 varchar(2) );'
+        folder.resolve('V04__file4.override').text = 'create table OVERRIDE ( col2 varchar(2) );'
+
+        when:
+        def entry1 = MigRecord.parseFilePath(folder.resolve('V01__file1.sql'), null)
+        then:
+        entry1.rank == 1
+        entry1.script == 'V01__file1.sql'
+        entry1.statements == ['create table XXX ( col1 varchar(1) );']
+        entry1.checksum == '216c372949a7178ce6bd026bf9a51a89bfc23b4a7abf3b7b6548a478a2f3d761'
+        entry1.getFileNameWithoutExtension() == 'V01__file1'
+
+        when:
+        def entry2 = MigRecord.parseFilePath(folder.resolve('V02__file2.txt'), null)
+        then:
+        entry2.rank == 2
+        entry2.script == 'V02__file2.txt'
+        entry2.statements == ['create table YYY ( col2 varchar(2) );', 'update table YYY;']
+        entry2.checksum == 'cae9a40915b7ac44199077534cefe9a0fcd4c8b8065416b4789d8c76efbff943'
+        entry2.getFileNameWithoutExtension() == 'V02__file2'
+
+        when:
+        def entry3 = MigRecord.parseFilePath(folder.resolve('V03__file3.groovy'), null)
+        then:
+        entry3.rank == 3
+        entry3.script == 'V03__file3.groovy'
+        entry3.statements == ['create table ZZZ ( col3 varchar(3) ); ']
+        entry3.checksum == '416fe4ac34653f3b28e058f683b99a7f2ec841eaf8b994b245801d7181cf840f'
+        entry3.getFileNameWithoutExtension() == 'V03__file3'
+
+        when:
+        def entry4 = MigRecord.parseFilePath(folder.resolve('V04__file4'), null)
+        then:
+        entry4.rank == 4
+        entry4.script == 'V04__file4'
+        entry4.statements == ['create table WWW ( col2 varchar(2) );']
+        entry4.checksum == '84269de96345e976872d5adc4ddc8710b0f001f117a0d444870e71c10e98ae3d'
+        entry4.getFileNameWithoutExtension() == 'V04__file4'
+        when:
+
+        def entry5 = MigRecord.parseFilePath(folder.resolve('V04__file4.patch'), null)
+        then:
+        entry5.rank == 4
+        entry5.script == 'V04__file4.patch'
+        entry5.statements == ['create table PATCH ( col2 varchar(2) );']
+        entry5.checksum == 'c84db547742075f892437129d248e08a193c36d863bd8d6602de7071f7d4221d'
+        entry5.getFileNameWithoutExtension() == 'V04__file4.patch'
+        when:
+        def entry6 = MigRecord.parseFilePath(folder.resolve('V04__file4.override'), null)
+        then:
+        entry6.rank == 4
+        entry6.script == 'V04__file4.override'
+        entry6.statements == ['create table OVERRIDE ( col2 varchar(2) );']
+        entry6.checksum == '18b20974888e28e3cf16aefdc37216c02b98c8ba4c4532fcdc839dc6965f48c6'
+        entry6.getFileNameWithoutExtension() == 'V04__file4.override'
+
+        cleanup:
+        folder?.deleteDir();
+    }
+
     def 'should parse SQL resource file'() {
 
         when:

@@ -10,38 +10,6 @@ import spock.lang.Specification
 
 class MigToolTest extends Specification {
 
-
-    def 'should init migtool' () {
-        given:
-        def tool = new MigTool()
-            .withDriver('org.h2.Driver')
-            .withDialect('h2')
-            .withUrl('jdbc:h2:mem:test;DB_CLOSE_DELAY=-1') // use DB_CLOSE_DELAY to avoid losing data when the jdbc connection is close
-            .withUser('sa')
-            .withPassword('')
-            .withLocations('classpath:test')
-
-        when:
-        tool.init()
-        then:
-        tool.schema == 'PUBLIC'
-        tool.catalog == 'TEST'
-        and:
-        def conn = tool.getConnection()
-        conn != null
-        and:
-        !tool.existTable(conn, MigTool.MIGTOOL_TABLE)
-
-        when:
-        tool.createIfNotExists()
-        then:
-        tool.existTable(conn, MigTool.MIGTOOL_TABLE)
-
-        cleanup:
-        conn?.close()
-    }
-
-
     def 'should apply local file migration' () {
         given:
         def folder = Files.createTempDirectory('test')
@@ -53,7 +21,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test1;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
@@ -100,7 +68,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test2;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("classpath:db/mariadb")
@@ -152,7 +120,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test3;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("classpath:db/mariadb")
@@ -178,7 +146,7 @@ class MigToolTest extends Specification {
         def tool = new MigTool()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
-                .withUrl('jdbc:h2:mem:test')
+                .withUrl('jdbc:h2:mem:test4;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withClassLoader(ClassFromJarWithResources.classLoader)
@@ -218,6 +186,475 @@ class MigToolTest extends Specification {
 
         cleanup:
         conn?.close()
+    }
+
+    def 'try to apply local file migration with override and without patch to one file' () {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.override.sql').text = 'create table OVERRIDE ( col1 varchar(1) ); '
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test5;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        tool.scanMigrations()
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def 'try to apply local file migration with patch and without override to one file' () {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.patch.sql').text = 'create table PATCH ( col1 varchar(1) ); '
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test6;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        tool.scanMigrations()
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def 'try to apply local file migration with override and  without patch to one file but patch file to another' () {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.override.sql').text = 'create table OVERRIDE ( col1 varchar(1) ); '
+        folder.resolve('V02__file2.sql').text = 'create table YYY ( col1 varchar(1) ); '
+        folder.resolve('V02__file2.patch.sql').text = 'create table PATCH ( col1 varchar(1) ); '
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test7;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        tool.scanMigrations()
+
+        then:
+        noExceptionThrown()
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def 'should apply patch file during second local file migration' () {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V02__file2.sql').text = 'create table YYY ( col2 varchar(2) ); create table ZZZ ( col3 varchar(3) );'
+        folder.resolve('V03__file3.sql').text = 'create table FILE3 ( col2 varchar(2) );'
+        folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test8;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==3
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__file2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and:
+        tool.patchEntries.size() == 0
+        and:
+        tool.overrideEntries.size() == 0
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        def conn = tool.getConnection()
+        conn != null
+        and: 'Should apply base'
+        tool.existTable(conn, 'XXX')
+        !tool.existTable(conn, 'PATCH')
+        and: 'Should apply only OVERRIDE script'
+        tool.existTable(conn, 'FILE3')
+        !tool.existTable(conn, 'OVERRIDE')
+        and: 'Rest'
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        and:
+        !tool.existTable(conn, 'FOO')
+
+        when: 'close current connection'
+        conn.close()
+        and: 'add patch file to folder and init new connection'
+        folder.resolve('V01__file1.patch.sql').text = 'create table PATCH ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.override.sql').text = 'create table OVERRIDE ( col2 varchar(2) );'
+        and: 'init tool with new folder'
+        tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test8;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==3
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__file2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and:
+        with(tool.patchEntries[0]) {
+            rank == 1
+            script == 'V01__file1.patch.sql'
+            statements == ['create table PATCH ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.overrideEntries[0]) {
+            rank == 1
+            script == 'V01__file1.override.sql'
+            statements == ['create table OVERRIDE ( col2 varchar(2) );']
+        }
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        and: 'init connection'
+        conn = tool.getConnection()
+        then:
+        conn != null
+        and: 'Should apply base and PATCH script'
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'PATCH')
+        and: 'Should apply only OVERRIDE script'
+        tool.existTable(conn, 'FILE3')
+        !tool.existTable(conn, 'OVERRIDE')
+        and: 'Rest'
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        and:
+        !tool.existTable(conn, 'FOO')
+    }
+
+    def 'should not apply override file during second local file migration' () {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V02__file2.sql').text = 'create table YYY ( col2 varchar(2) ); create table ZZZ ( col3 varchar(3) );'
+        folder.resolve('V03__file3.sql').text = 'create table FILE3 ( col2 varchar(2) );'
+        folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test11;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==3
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__file2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and:
+        with(tool.migrationEntries[2]) {
+            rank == 3
+            script == 'V03__file3.sql'
+            statements == ['create table FILE3 ( col2 varchar(2) );']
+        }
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        def conn = tool.getConnection()
+        conn != null
+        and: 'Should apply files without override'
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'FILE3')
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        !tool.existTable(conn, 'OVERRIDE')
+        !tool.existTable(conn, 'FOO')
+
+        when: 'close current connection'
+        conn.close()
+        and: 'add override file to folder and init new connection'
+        folder.resolve('V03__file3.override.sql').text = 'create table OVERRIDE ( col2 varchar(2) );'
+        folder.resolve('V03__file3.patch.sql').text = 'create table PATCH ( col2 varchar(2) );'
+        and: 'init tool with new folder'
+        tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test11;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==3
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__file2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and: 'should scan override file'
+        with(tool.overrideEntries[0]) {
+            rank == 3
+            script == 'V03__file3.override.sql'
+            statements == ['create table OVERRIDE ( col2 varchar(2) );']
+        }
+        and: 'should scan patch file'
+        with(tool.patchEntries[0]) {
+            rank == 3
+            script == 'V03__file3.patch.sql'
+            statements == ['create table PATCH ( col2 varchar(2) );']
+        }
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        and: 'init connection'
+        conn = tool.getConnection()
+        then:
+        conn != null
+        and: 'Should not apply override'
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'FILE3')
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        !tool.existTable(conn, 'OVERRIDE')
+        tool.existTable(conn, 'PATCH')
+        !tool.existTable(conn, 'FOO')
+    }
+
+    def 'should apply local file migration with patch and override name variations' () {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1patch.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V02__fiPATCHle2.sql').text = 'create table YYY ( col2 varchar(2) ); create table ZZZ ( col3 varchar(3) );'
+        folder.resolve('V03__file1override.sql').text = 'create table WWW ( col1 varchar(1) ); '
+        folder.resolve('V04__fifOVERRIDEixle2.sql').text = 'create table SSS ( col2 varchar(2) );'
+        folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test13;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==4
+        tool.patchEntries.size()==0
+        tool.overrideEntries.size()==0
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__file1patch.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__fiPATCHle2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and:
+        with(tool.migrationEntries[2]) {
+            rank == 3
+            script == 'V03__file1override.sql'
+            statements == ['create table WWW ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[3]) {
+            rank == 4
+            script == 'V04__fifOVERRIDEixle2.sql'
+            statements == ['create table SSS ( col2 varchar(2) );']
+        }
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        def conn = tool.getConnection()
+        conn != null
+        and:
+        tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+        and:
+        !tool.existTable(conn, 'FOO')
+
+        cleanup:
+        conn?.close()
+        folder?.deleteDir()
+    }
+
+    def 'should apply class path migration with patch and override files' () {
+        given:
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test14;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("classpath:db/mysql")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        tool.migrationEntries.size()==2
+        tool.overrideEntries.size()==1
+        tool.patchEntries.size()==1
+        and:
+        with(tool.migrationEntries[0]) {
+            rank == 1
+            script == 'V01__mysql1.sql'
+            statements == ['create table XXX ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.migrationEntries[1]) {
+            rank == 2
+            script == 'V02__mysql2.sql'
+            statements == ['create table YYY ( col2 varchar(2) );', 'create table ZZZ ( col3 varchar(3) );']
+        }
+        and:
+        with(tool.overrideEntries[0]) {
+            rank == 1
+            script == 'V01__mysql1.override.sql'
+            statements == ['create table OVERRIDE ( col1 varchar(1) );']
+        }
+        and:
+        with(tool.patchEntries[0]) {
+            rank == 1
+            script == 'V01__mysql1.patch.sql'
+            statements == ['create table PATCH ( col2 varchar(2) );']
+        }
+
+
+        when:
+        tool.createIfNotExists()
+        tool.apply()
+        then:
+        def conn = tool.getConnection()
+        conn != null
+        and:
+        !tool.existTable(conn, 'XXX')
+        tool.existTable(conn, 'OVERRIDE')
+        !tool.existTable(conn, 'PATCH')
+        tool.existTable(conn, 'YYY')
+        tool.existTable(conn, 'ZZZ')
+
+        cleanup:
+        conn?.close()
+    }
+
+    def 'try to migrate with patch having two .PATCH suffixes'() {
+        given:
+        def folder = Files.createTempDirectory('test')
+        folder.resolve('V01__file1.sql').text = 'create table XXX ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.patch.sql').text = 'create table PATCH ( col1 varchar(1) ); '
+        folder.resolve('V01__file1.PATCH.patch.sql').text = 'create table PATCHSECOND ( col1 varchar(1) ); '
+        and:
+
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test15;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("file:$folder")
+
+        when:
+        tool.init()
+        and:
+        tool.scanMigrations()
+        then:
+        thrown(IllegalArgumentException)
     }
 
 }

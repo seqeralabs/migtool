@@ -20,7 +20,12 @@ group = 'io.seqera'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+
+    compileJava {
+        // Set binary compatibility for Java compiler to 11, as it's used as a convention across all projects
+        options.release.set(11)
     }
 }
 
@@ -117,6 +122,7 @@ graalvmNative {
             mainClass = 'io.seqera.migtool.App'
             configurationFileDirectories.from(file('conf'))
 
+
             buildArgs(org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isLinux() ? ['--static', ] : [])
             buildArgs.add('--allow-incomplete-classpath')
             buildArgs.add('--report-unsupported-elements-at-runtime')
@@ -128,6 +134,10 @@ graalvmNative {
             buildArgs.add('-H:IncludeResources=.*/TlsSettings.properties$')
             buildArgs.add('-H:+StaticExecutableWithDynamicLibC')
             buildArgs.add('-H:+PrintClassInitialization')
+
+            javaLauncher = javaToolchains.launcherFor {
+                languageVersion = JavaLanguageVersion.of(17)
+            }
         }
     }
 }

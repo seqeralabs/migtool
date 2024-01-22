@@ -14,13 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import groovy.lang.Binding;
@@ -61,7 +55,15 @@ public class MigTool {
     String schema;
     String catalog;
 
-    private List<MigRecord> migrationEntries;
+    private final List<MigRecord> migrationEntries;
+    private final List<MigRecord> patchEntries;
+    private final List<MigRecord> overrideEntries;
+
+    public MigTool() {
+        this.migrationEntries = new ArrayList<>();
+        this.patchEntries = new ArrayList<>();
+        this.overrideEntries = new ArrayList<>();
+    }
 
     public MigTool withDriver(String driver) {
         this.driver = driver;
@@ -151,6 +153,14 @@ public class MigTool {
 
     List<MigRecord> getMigrationEntries() {
         return migrationEntries;
+    }
+
+    List<MigRecord> getPatchEntries() {
+        return patchEntries;
+    }
+
+    List<MigRecord> getOverrideEntries() {
+        return overrideEntries;
     }
 
     /**
@@ -244,7 +254,7 @@ public class MigTool {
     }
 
     /**
-     * Create the support Migtool DB table if does not exists
+     * Create the support Migtool DB table if it does not exist
      */
     protected void createIfNotExists() {
         try (Connection conn = getConnection()) {
@@ -266,28 +276,24 @@ public class MigTool {
      * a file system directory or classpath resources
      */
     protected void scanMigrations() {
-
         if( locations.startsWith(SOURCE_CLASSPATH) ) {
             String path = locations.substring(SOURCE_CLASSPATH.length());
             Set<String> files = Helper.getResourceFiles(path);
-            List<MigRecord> entries = new ArrayList<>(files.size());
             for( String it : files ) {
                 MigRecord entry = MigRecord.parseResourcePath(it, pattern);
                 if( entry==null ) {
                     log.warn("Invalid migration source file: " + it);
                 }
                 else {
-                    entries.add(entry);
+                    addEntry(entry);
                 }
             }
             // sort
-            Collections.sort(entries);
-            this.migrationEntries = entries;
+            Collections.sort(this.migrationEntries);
         }
         else if( locations.startsWith(SOURCE_FILE)) {
             String path = locations.substring(SOURCE_FILE.length());
             try {
-                List<MigRecord> entries = new ArrayList<>();
                 Iterator<Path> itr = Files.newDirectoryStream(Paths.get(path)).iterator();
 
                 while( itr.hasNext() ) {
@@ -297,11 +303,10 @@ public class MigTool {
                         log.warn("Invalid migration source file: " + it);
                     }
                     else {
-                        entries.add(entry);
+                        addEntry(entry);
                     }
                 }
-                Collections.sort(entries);
-                this.migrationEntries = entries;
+                Collections.sort(this.migrationEntries);
             }
             catch (IOException e ) {
                 throw new IllegalArgumentException("Unable to list files from location: " + locations + " -- cause: " + e.getMessage());
@@ -310,6 +315,19 @@ public class MigTool {
         else {
             throw new IllegalArgumentException("Invalid locations prefix: " + locations);
         }
+
+        log.debug("Scanned {} migration files, {} override files and {} patch files", migrationEntries.size(), overrideEntries.size(), patchEntries.size());
+        if (overrideEntries.size() != patchEntries.size())
+            throw new IllegalArgumentException("Sum of patch and override files doesn't match. For each patch file there has to be created override file.");
+    }
+
+    private void addEntry(MigRecord entry) {
+        if(entry.isOverride())
+            this.overrideEntries.add(entry);
+        else if(entry.isPatch())
+            this.patchEntries.add(entry);
+        else
+            this.migrationEntries.add(entry);
     }
 
     /**
@@ -344,17 +362,66 @@ public class MigTool {
         }
     }
 
+    MigRecord findPatchRecord(MigRecord entry) {
+        return findRelatedRecordInCollection(patchEntries, entry);
+    }
+
+    MigRecord findOverrideRecord(MigRecord entry) {
+        return findRelatedRecordInCollection(overrideEntries, entry);
+    }
+
+    private MigRecord findRelatedRecordInCollection(List<MigRecord> records, MigRecord entry) {
+        return records.stream()
+                .filter(e -> e.rank == entry.rank)
+                .findFirst()
+                .orElse(null);
+    }
 
     protected void applyMigration(MigRecord entry) throws SQLException {
-        if( checkMigrated(entry) ) {
+        MigRecord overrideEntry = findOverrideRecord(entry);
+        MigRecord patch = findPatchRecord(entry);
+
+        if (!Objects.isNull(overrideEntry) == Objects.isNull(patch))
+            throw new IllegalArgumentException(String.format("File %s contains only one from override/patch files. These files should always exist together.", entry.script));
+
+        if (checkMigrated(entry)) {
             log.info("DB migration already applied: {} {}", entry.rank, entry.script);
+            applyMigrationPatch(entry, patch);
             return;
         }
 
+        if (overrideEntry != null) {
+            log.info("Detected override file. Attempt to apply {} instead of {}", overrideEntry.script, entry.script);
+            if (checkMigrated(overrideEntry)) {
+                log.info("DB migration override already applied: {} {}", overrideEntry.rank, overrideEntry.script);
+                return;
+            }
+            entry = overrideEntry;
+        }
+
         checkRank(entry);
-
         log.info("DB migration {} {} ..", entry.rank, entry.script);
+        int delta = migrate(entry);
+        log.info("DB migration performed: {} {} - execution time {}ms {}", entry.rank, entry.script, delta, entry.statements);
+        if (!entry.isOverride())
+            applyMigrationPatch(entry, patch);
+    }
 
+    protected void applyMigrationPatch(MigRecord entry, MigRecord patch) throws SQLException {
+        if (patch == null)
+            return;
+
+        log.info("Detected patch file. Attempt to apply {}", patch.script);
+        if (checkMigrated(patch)) {
+            log.info("DB migration patch already applied: {} {}", patch.rank, patch.script);
+            return;
+        }
+        log.info("DB migration patch {} {} ..", patch.rank, patch.script);
+        int delta = migrate(patch);
+        log.info("DB migration patch performed: {} {} - execution time {}ms {}", patch.rank, patch.script, delta, patch.statements);
+    }
+
+    private int migrate(MigRecord entry) throws SQLException {
         long now = System.currentTimeMillis();
 
         if (entry.language == MigRecord.Language.GROOVY) {
@@ -376,16 +443,15 @@ public class MigTool {
             insert.setInt(5, delta);
             insert.executeUpdate();
         }
-        // just log
-        log.info("DB migration performed: {} {} - execution time {}ms", entry.rank, entry.script, delta);
-
+        return delta;
     }
 
     protected boolean checkMigrated(MigRecord entry) {
-        String sql = "select `id`, `checksum` from " + MIGTOOL_TABLE + " where `rank` = ?";
+        String sql = "select `id`, `checksum`, `script` from " + MIGTOOL_TABLE + " where `rank` = ? and `script` = ?";
 
         try (Connection conn=getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
             stm.setInt(1, entry.rank);
+            stm.setString(2, entry.script);
 
             ResultSet rs = stm.executeQuery();
             if( !rs.next() ) {

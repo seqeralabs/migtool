@@ -10,6 +10,15 @@ In addition, the migration files can be written in Groovy in order to run script
 Only requirement is that migration files follow the pattern `V99__Some_name.[sql|groovy]`, where 
 `99` can be any integer value.
 
+### Patch and override files
+
+For each migration file that needs to be corrected a pair of `.path` and `.override` must exists. 
+
+The behaviour will follow these rules:
+- **WHEN** file.sql exists and was executed **AND** file.patch.sql, file.override.sql pair exists -> apply patch
+- **WHEN** file.sql exists and was not executed **AND** file.patch.sql, file.override.sql pair exists -> apply override
+
+If for a given file there is only either a single .patch or a single .override then the tool will throw an illegal state exception stopping the migration process
 
 ## Get started 
 
