@@ -30,9 +30,16 @@ jobs:
       - name: Setup Graalvm
         uses: graalvm/setup-graalvm@v1
         with:
-          java-version: '17.0.8'
+          java-version: '17'
           distribution: 'graalvm'
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Print info
+        run: |
+          echo "GRAALVM_HOME: $GRAALVM_HOME"
+          echo "JAVA_HOME: $JAVA_HOME"
+          java --version
+          native-image --version
 
       - name: Install native-image component
         run: gu install native-image
