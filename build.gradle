@@ -109,16 +109,18 @@ tasks.withType(Jar) {
 }
 
 graalvmNative {
+    metadataRepository {
+        enabled = true
+    }
     binaries {
         main {
             imageName = 'migtool'
             mainClass = 'io.seqera.migtool.App'
             configurationFileDirectories.from(file('conf'))
 
-
             buildArgs(org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isLinux() ? ['--static', ] : [])
             buildArgs.add('--report-unsupported-elements-at-runtime')
-            buildArgs.add('--initialize-at-run-time=sun.nio.ch.WindowsAsynchronousFileChannelImpl$DefaultIocpHolder')
+            buildArgs.add('--initialize-at-run-time=sun.nio.ch.WindowsAsynchronousFileChannelImpl$DefaultIocpHolder,groovy.grape.GrapeIvy,com.oracle.truffle.js.scriptengine.GraalJSEngineFactory')
             buildArgs.add('-H:+AddAllCharsets')
             buildArgs.add('-H:EnableURLProtocols=https,http')
             buildArgs.add('-H:+ReportExceptionStackTraces')
