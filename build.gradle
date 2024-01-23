@@ -40,34 +40,36 @@ configurations[nativeCliTest.runtimeOnlyConfigurationName].extendsFrom(configura
 
 
 dependencies {
+    implementation platform("io.micronaut.platform:micronaut-platform:$micronautVersion")
+    implementation 'io.micronaut:micronaut-inject-groovy'
+
     // This dependency is used by the application.
-    implementation "ch.qos.logback:logback-classic:1.2.3"
+    implementation "ch.qos.logback:logback-classic"
     runtimeOnly 'mysql:mysql-connector-java:8.0.22'
     runtimeOnly 'com.h2database:h2:1.4.200'
     runtimeOnly 'mysql:mysql-connector-java:8.0.28'
-    runtimeOnly 'org.xerial:sqlite-jdbc:3.36.0.3'
+    runtimeOnly 'org.xerial:sqlite-jdbc:3.45.0.0'
     implementation 'info.picocli:picocli:4.6.3'
     annotationProcessor 'info.picocli:picocli-codegen:4.6.3'
-
-    implementation "org.codehaus.groovy:groovy:3.0.9"
-    implementation "org.codehaus.groovy:groovy-sql:3.0.9"
+    implementation 'org.apache.groovy:groovy-sql'
 
     // Use the latest Groovy version for Spock testing
-    testImplementation "org.codehaus.groovy:groovy:3.0.9"
-    testImplementation "org.codehaus.groovy:groovy-nio:3.0.9"
-    testImplementation platform("org.spockframework:spock-bom:2.1-groovy-3.0")
+    testImplementation platform("io.micronaut.platform:micronaut-platform:$micronautVersion")
+    testImplementation 'org.apache.groovy:groovy-nio'
+    testImplementation "io.micronaut:micronaut-inject-groovy"
+    testImplementation "io.micronaut.test:micronaut-test-spock"
     testImplementation "org.spockframework:spock-core"
     testImplementation "org.spockframework:spock-junit4"  // you can remove this if your code does not rely on old JUnit 4 rules
     testImplementation 'junit:junit:4.13'
-    testImplementation "org.testcontainers:testcontainers:1.16.3"
-    testImplementation "org.testcontainers:mysql:1.16.3"
-    testImplementation "org.testcontainers:spock:1.16.3"
+    testImplementation "org.testcontainers:testcontainers"
+    testImplementation "org.testcontainers:mysql"
+    testImplementation "org.testcontainers:spock"
 
     // Dummy library containing some migration files among their resources for testing purposes
     testImplementation files("libs/jar-with-resources.jar")
 
     nativeCliTestImplementation project
-    nativeCliTestImplementation "org.codehaus.groovy:groovy-sql:3.0.9"
+    nativeCliTestImplementation 'org.apache.groovy:groovy-sql'
 }
 
 test {
