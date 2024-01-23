@@ -40,32 +40,27 @@ configurations[nativeCliTest.runtimeOnlyConfigurationName].extendsFrom(configura
 
 
 dependencies {
-    implementation platform("io.micronaut.platform:micronaut-platform:$micronautVersion")
-
-    // This dependency is used by the application.
-    implementation "ch.qos.logback:logback-classic"
+    implementation "ch.qos.logback:logback-classic:1.4.14"
     runtimeOnly 'mysql:mysql-connector-java:8.0.28'
     runtimeOnly 'com.h2database:h2:1.4.200'
     runtimeOnly 'mysql:mysql-connector-java:8.0.28'
     runtimeOnly 'org.xerial:sqlite-jdbc:3.45.0.0'
     implementation 'info.picocli:picocli:4.6.3'
     annotationProcessor 'info.picocli:picocli-codegen:4.6.3'
-    implementation 'org.apache.groovy:groovy-sql'
+    implementation 'org.apache.groovy:groovy-sql:4.0.16'
 
-    // Use the latest Groovy version for Spock testing
-    testImplementation platform("io.micronaut.platform:micronaut-platform:$micronautVersion")
-    testImplementation 'org.apache.groovy:groovy-nio'
-    testImplementation "io.micronaut.test:micronaut-test-spock"
-    testImplementation "org.spockframework:spock-core"
-    testImplementation "org.testcontainers:testcontainers"
-    testImplementation "org.testcontainers:mysql"
-    testImplementation "org.testcontainers:spock"
+    testImplementation 'ch.qos.logback:logback-classic:1.4.14'
+    testImplementation 'org.apache.groovy:groovy-nio:4.0.16'
+    testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
+    testImplementation 'org.testcontainers:testcontainers:1.19.3'
+    testImplementation 'org.testcontainers:mysql:1.19.3'
+    testImplementation 'org.testcontainers:spock:1.19.3'
 
     // Dummy library containing some migration files among their resources for testing purposes
     testImplementation files("libs/jar-with-resources.jar")
 
     nativeCliTestImplementation project
-    nativeCliTestImplementation 'org.apache.groovy:groovy-sql'
+    nativeCliTestImplementation 'org.apache.groovy:groovy-sql:4.0.16'
 }
 
 test {
