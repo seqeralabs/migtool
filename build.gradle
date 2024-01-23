@@ -41,11 +41,10 @@ configurations[nativeCliTest.runtimeOnlyConfigurationName].extendsFrom(configura
 
 dependencies {
     implementation platform("io.micronaut.platform:micronaut-platform:$micronautVersion")
-    implementation 'io.micronaut:micronaut-inject-groovy'
 
     // This dependency is used by the application.
     implementation "ch.qos.logback:logback-classic"
-    runtimeOnly 'mysql:mysql-connector-java:8.0.22'
+    runtimeOnly 'mysql:mysql-connector-java:8.0.28'
     runtimeOnly 'com.h2database:h2:1.4.200'
     runtimeOnly 'mysql:mysql-connector-java:8.0.28'
     runtimeOnly 'org.xerial:sqlite-jdbc:3.45.0.0'
@@ -56,11 +55,8 @@ dependencies {
     // Use the latest Groovy version for Spock testing
     testImplementation platform("io.micronaut.platform:micronaut-platform:$micronautVersion")
     testImplementation 'org.apache.groovy:groovy-nio'
-    testImplementation "io.micronaut:micronaut-inject-groovy"
     testImplementation "io.micronaut.test:micronaut-test-spock"
     testImplementation "org.spockframework:spock-core"
-    testImplementation "org.spockframework:spock-junit4"  // you can remove this if your code does not rely on old JUnit 4 rules
-    testImplementation 'junit:junit:4.13'
     testImplementation "org.testcontainers:testcontainers"
     testImplementation "org.testcontainers:mysql"
     testImplementation "org.testcontainers:spock"
@@ -126,7 +122,6 @@ graalvmNative {
 
 
             buildArgs(org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isLinux() ? ['--static', ] : [])
-            buildArgs.add('--allow-incomplete-classpath')
             buildArgs.add('--report-unsupported-elements-at-runtime')
             buildArgs.add('--initialize-at-run-time=sun.nio.ch.WindowsAsynchronousFileChannelImpl$DefaultIocpHolder')
             buildArgs.add('-H:+AddAllCharsets')

@@ -1,5 +1,11 @@
 MIGTOOL CHANGE-LOG
 ===================
+1.6.1 - 23 Jan 2024
+- Updated Micronaut version to 4.2.3
+
+1.6.0 - 23 Jan 2024
+- Updated Gradle version to 8.5
+
 1.5.0 - 22 Jan 2024
 - Add support for patch and override files
 
