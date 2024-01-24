@@ -24,8 +24,8 @@ java {
     }
 
     compileJava {
-        // Set binary compatibility for Java compiler to 17
-        options.release.set(17)
+        // Set binary compatibility for Java compiler to 11 (worth checking to update this also)
+        options.release.set(11)
     }
 }
 
