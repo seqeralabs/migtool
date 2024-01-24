@@ -103,6 +103,6 @@ jobs:
           role-to-assume: arn:aws:iam::128997144437:role/Development
       
       - name: Publish STABLE jars
-        run: ./gradle.sh publish
+        run: ./gradlew publish
         
       
