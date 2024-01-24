@@ -1,15 +1,13 @@
 package io.seqera.migtool
 
-import groovy.sql.Sql
-import org.testcontainers.containers.MySQLContainer
 import spock.lang.Requires
-import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Timeout
 
 import java.nio.file.Files
 import java.nio.file.Path
 
+import groovy.sql.Sql
 
 @Timeout(30)
 @Requires({System.getenv('NATIVE_BINARY_PATH')})

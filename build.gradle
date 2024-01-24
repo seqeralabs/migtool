@@ -49,16 +49,12 @@ dependencies {
     implementation 'info.picocli:picocli:4.6.3'
     annotationProcessor 'info.picocli:picocli-codegen:4.6.3'
 
-    implementation "org.codehaus.groovy:groovy:3.0.9"
-    implementation "org.codehaus.groovy:groovy-sql:3.0.9"
+    implementation 'org.apache.groovy:groovy-sql:4.0.16'
 
     // Use the latest Groovy version for Spock testing
-    testImplementation "org.codehaus.groovy:groovy:3.0.9"
-    testImplementation "org.codehaus.groovy:groovy-nio:3.0.9"
-    testImplementation platform("org.spockframework:spock-bom:2.1-groovy-3.0")
-    testImplementation "org.spockframework:spock-core"
-    testImplementation "org.spockframework:spock-junit4"  // you can remove this if your code does not rely on old JUnit 4 rules
-    testImplementation 'junit:junit:4.13'
+    testImplementation 'org.apache.groovy:groovy:4.0.16'
+    testImplementation 'org.apache.groovy:groovy-nio:4.0.16'
+    testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
     testImplementation "org.testcontainers:testcontainers:1.16.3"
     testImplementation "org.testcontainers:mysql:1.16.3"
     testImplementation "org.testcontainers:spock:1.16.3"
@@ -67,7 +63,7 @@ dependencies {
     testImplementation files("libs/jar-with-resources.jar")
 
     nativeCliTestImplementation project
-    nativeCliTestImplementation "org.codehaus.groovy:groovy-sql:3.0.9"
+    nativeCliTestImplementation 'org.apache.groovy:groovy-sql:4.0.16'
 }
 
 test {
@@ -124,7 +120,6 @@ graalvmNative {
 
 
             buildArgs(org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isLinux() ? ['--static', ] : [])
-            buildArgs.add('--allow-incomplete-classpath')
             buildArgs.add('--report-unsupported-elements-at-runtime')
             buildArgs.add('--initialize-at-run-time=sun.nio.ch.WindowsAsynchronousFileChannelImpl$DefaultIocpHolder')
             buildArgs.add('-H:+AddAllCharsets')
