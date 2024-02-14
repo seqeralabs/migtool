@@ -41,7 +41,7 @@ configurations[nativeCliTest.runtimeOnlyConfigurationName].extendsFrom(configura
 
 dependencies {
     // This dependency is used by the application.
-    implementation "ch.qos.logback:logback-classic:1.2.3"
+    implementation "ch.qos.logback:logback-classic:1.4.14"
     runtimeOnly 'mysql:mysql-connector-java:8.0.22'
     runtimeOnly 'com.h2database:h2:1.4.200'
     runtimeOnly 'mysql:mysql-connector-java:8.0.28'
