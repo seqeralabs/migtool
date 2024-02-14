@@ -10,7 +10,7 @@ plugins {
     id 'java'
     id 'groovy'
     id 'application'
-    id 'org.graalvm.buildtools.native' version '0.9.28'
+    id 'org.graalvm.buildtools.native' version '0.10.0'
     id 'maven-publish'
 }
 
@@ -19,13 +19,9 @@ version = new File(rootDir,'VERSION').text.trim()
 group = 'io.seqera'
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-
     compileJava {
         // Set binary compatibility for Java compiler to 11 (worth checking to update this also)
-        options.release.set(11)
+        options.release.set(17)
     }
 }
 
@@ -124,7 +120,6 @@ graalvmNative {
 
 
             buildArgs(org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isLinux() ? ['--static', ] : [])
-            buildArgs.add('--allow-incomplete-classpath')
             buildArgs.add('--report-unsupported-elements-at-runtime')
             buildArgs.add('--initialize-at-run-time=sun.nio.ch.WindowsAsynchronousFileChannelImpl$DefaultIocpHolder')
             buildArgs.add('-H:+AddAllCharsets')
@@ -134,10 +129,6 @@ graalvmNative {
             buildArgs.add('-H:IncludeResources=.*/TlsSettings.properties$')
             buildArgs.add('-H:+StaticExecutableWithDynamicLibC')
             buildArgs.add('-H:+PrintClassInitialization')
-
-            javaLauncher = javaToolchains.launcherFor {
-                languageVersion = JavaLanguageVersion.of(17)
-            }
         }
     }
 }
