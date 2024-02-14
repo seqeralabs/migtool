@@ -46,24 +46,17 @@ dependencies {
     runtimeOnly 'com.h2database:h2:1.4.200'
     runtimeOnly 'mysql:mysql-connector-java:8.0.28'
     runtimeOnly 'org.xerial:sqlite-jdbc:3.36.0.3'
-    implementation 'info.picocli:picocli:4.6.3'
+    implementation 'info.picocli:picocli:4.7.5'
     annotationProcessor 'info.picocli:picocli-codegen:4.6.3'
 
-    //implementation "org.codehaus.groovy:groovy:3.0.9"
-    //implementation "org.codehaus.groovy:groovy-sql:3.0.9"
-    //implementation 'org.apache.groovy:groovy-all:4.0.18'
     implementation 'org.apache.groovy:groovy:4.0.18'
     implementation 'org.apache.groovy:groovy-sql:4.0.18'
     implementation 'org.apache.groovy:groovy-nio:4.0.18'
 
     // Use the latest Groovy version for Spock testing
-    //testImplementation "org.codehaus.groovy:groovy:3.0.9"
-    //testImplementation "org.codehaus.groovy:groovy-nio:3.0.9"
-    //testImplementation 'org.apache.groovy:groovy-all:4.0.18'
     testImplementation 'org.apache.groovy:groovy:4.0.18'
     testImplementation 'org.apache.groovy:groovy-sql:4.0.18'
     testImplementation 'org.apache.groovy:groovy-nio:4.0.18'
-
     testImplementation platform("org.spockframework:spock-bom:2.3-groovy-4.0")
     testImplementation "org.spockframework:spock-core"
     testImplementation "org.testcontainers:testcontainers:1.19.5"
@@ -76,6 +69,7 @@ dependencies {
     nativeCliTestImplementation project
     nativeCliTestImplementation "org.apache.groovy:groovy-sql:4.0.18"
     nativeCliTestImplementation "org.apache.groovy:groovy-nio:4.0.18"
+    nativeCliTestImplementation 'org.apache.groovy:groovy:4.0.18'
 }
 
 test {
