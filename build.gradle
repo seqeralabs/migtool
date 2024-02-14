@@ -10,7 +10,7 @@ plugins {
     id 'java'
     id 'groovy'
     id 'application'
-    id 'org.graalvm.buildtools.native' version '0.9.28'
+    id 'org.graalvm.buildtools.native' version '0.10.0'
     id 'maven-publish'
 }
 
@@ -25,7 +25,7 @@ java {
 
     compileJava {
         // Set binary compatibility for Java compiler to 11 (worth checking to update this also)
-        options.release.set(11)
+        options.release.set(17)
     }
 }
 
@@ -43,9 +43,9 @@ dependencies {
     // This dependency is used by the application.
     implementation "ch.qos.logback:logback-classic:1.2.3"
     runtimeOnly 'mysql:mysql-connector-java:8.0.22'
-    runtimeOnly 'com.h2database:h2:1.4.200'
+    runtimeOnly 'com.h2database:h2:2.2.224'
     runtimeOnly 'mysql:mysql-connector-java:8.0.28'
-    runtimeOnly 'org.xerial:sqlite-jdbc:3.36.0.3'
+    runtimeOnly 'org.xerial:sqlite-jdbc:3.45.1.0'
     implementation 'info.picocli:picocli:4.6.3'
     annotationProcessor 'info.picocli:picocli-codegen:4.6.3'
 
@@ -55,9 +55,9 @@ dependencies {
     testImplementation 'org.apache.groovy:groovy:4.0.16'
     testImplementation 'org.apache.groovy:groovy-nio:4.0.16'
     testImplementation 'org.spockframework:spock-core:2.3-groovy-4.0'
-    testImplementation "org.testcontainers:testcontainers:1.16.3"
-    testImplementation "org.testcontainers:mysql:1.16.3"
-    testImplementation "org.testcontainers:spock:1.16.3"
+    testImplementation "org.testcontainers:testcontainers:1.19.5"
+    testImplementation "org.testcontainers:mysql:1.19.5"
+    testImplementation "org.testcontainers:spock:1.19.5"
 
     // Dummy library containing some migration files among their resources for testing purposes
     testImplementation files("libs/jar-with-resources.jar")
@@ -134,6 +134,9 @@ graalvmNative {
                 languageVersion = JavaLanguageVersion.of(17)
             }
         }
+    }
+    binaries.all {
+        buildArgs.add("--verbose")
     }
 }
 
