@@ -2,7 +2,6 @@ package io.seqera.migtool
 
 import groovy.sql.Sql
 import org.testcontainers.containers.MySQLContainer
-import spock.lang.IgnoreIf
 import spock.lang.Requires
 import spock.lang.Specification
 import spock.lang.Timeout
