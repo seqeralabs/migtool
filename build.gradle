@@ -10,7 +10,7 @@ plugins {
     id 'java'
     id 'groovy'
     id 'application'
-    id 'org.graalvm.buildtools.native' version '0.9.28'
+    id 'org.graalvm.buildtools.native' version '0.10.0'
     id 'maven-publish'
 }
 
@@ -24,8 +24,8 @@ java {
     }
 
     compileJava {
-        // Set binary compatibility for Java compiler to 11 (worth checking to update this also)
-        options.release.set(11)
+        // Set binary compatibility for Java compiler to 17
+        options.release.set(17)
     }
 }
 
