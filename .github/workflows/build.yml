@@ -41,20 +41,22 @@ jobs:
         run: ./gradlew check
 
       - name: Tests reports
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: linux-test-reports
           path: build/reports/tests/test/
+          overwrite: true
 
       - name: Build Native Image
         run: ./gradlew nativeCompile
 
       - name: Upload linux native image artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: migtool_linux
           path: build/native/nativeCompile/migtool
+          overwrite: true
 
       - name: Tests native
         run: ./gradlew cleanTest check
@@ -62,11 +64,12 @@ jobs:
           NATIVE_BINARY_PATH: build/native/nativeCompile/migtool
 
       - name: TestsNative reports
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: linux-testsNative-reports
           path: build/reports/tests/nativeCliTest/
+          overwrite: true
 
   release:
     name: Release
