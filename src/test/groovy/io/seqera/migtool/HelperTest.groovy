@@ -36,14 +36,18 @@ class HelperTest extends Specification {
     def 'should parse dialect from url' () {
         expect:
         Helper.dialectFromUrl() == null
-        Helper.dialectFromUrl('jdbc:h2:file:./.db/h2/tower') == 'h2'
-        Helper.dialectFromUrl('jdbc:mysql://foo.com:3306/licman') == 'mysql'
+        Helper.dialectFromUrl('jdbc:h2:file:./.db/h2/tower') == Dialect.H2
+        Helper.dialectFromUrl('jdbc:mysql://foo.com:3306/licman') == Dialect.MYSQL
+        Helper.dialectFromUrl('jdbc:tc:postgresql:16-alpine:///test') == Dialect.TCPOSTGRES
+        Helper.dialectFromUrl('jdbc:postgresql://localhost:5432/test') == Dialect.POSTGRES
     }
 
     def 'should get driver from url' () {
         expect:
         Helper.driverFromUrl() == null
-        Helper.driverFromUrl('jdbc:h2:file:./.db/h2/tower') == 'org.h2.Driver'
-        Helper.driverFromUrl('jdbc:mysql://foo.com:3306/licman') == 'com.mysql.cj.jdbc.Driver'
+        Helper.driverFromUrl('jdbc:h2:file:./.db/h2/tower') == Driver.H2
+        Helper.driverFromUrl('jdbc:mysql://foo.com:3306/licman') == Driver.MYSQL
+        Helper.driverFromUrl('jdbc:tc:postgresql:16-alpine:///test') == Driver.TCPOSTGRES
+        Helper.driverFromUrl('jdbc:postgresql://localhost:5432/test') == Driver.POSTGRES
     }
 }

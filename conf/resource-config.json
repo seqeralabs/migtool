@@ -30,6 +30,9 @@
     },
     {
       "pattern":"\\Qschema/sqlite.sql\\E"
+    },
+    {
+      "pattern":"\\Qschema/postgres.sql\\E"
     }
   ]},
   "bundles":[{

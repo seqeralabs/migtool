@@ -3,6 +3,8 @@
  */
 package io.seqera.migtool;
 
+import static io.seqera.migtool.Dialect.*;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,13 +44,13 @@ public class MigTool {
 
     static final String MIGTOOL_TABLE = "MIGTOOL_HISTORY";
 
-    static final String[] DIALECTS = {"h2", "mysql", "mariadb","sqlite"};
+    static final Dialect[] DIALECTS = {H2, MYSQL, MARIADB, SQLITE, POSTGRES, TCPOSTGRES};
 
-    String driver;
+    Driver driver;
     String url;
     String user;
     String password;
-    String dialect;
+    Dialect dialect;
     String locations;
     ClassLoader classLoader;
     Pattern pattern;
@@ -66,7 +68,7 @@ public class MigTool {
     }
 
     public MigTool withDriver(String driver) {
-        this.driver = driver;
+        this.driver = Driver.from(driver);
         return this;
     }
 
@@ -86,7 +88,7 @@ public class MigTool {
     }
 
     public MigTool withDialect(String dialect) {
-        this.dialect = dialect;
+        this.dialect = Dialect.from(dialect);
         return this;
     }
 
@@ -121,8 +123,7 @@ public class MigTool {
             createIfNotExists();
             scanMigrations();
             apply();
-        }
-        finally {
+        } finally {
             if( previous!=null ) {
                 Thread.currentThread().setContextClassLoader(previous);
             }
@@ -167,11 +168,17 @@ public class MigTool {
      * Validate the expected input params and open the connection with the DB
      */
     protected void init() {
-        if( dialect==null || dialect.isEmpty() )
+        validateAttributes();
+        loadDriver();
+        loadSchemaAndCatalog();
+    }
+
+    private void validateAttributes() {
+        if( dialect==null )
             throw new IllegalStateException("Missing 'dialect' attribute");
         if( url==null || url.isEmpty() )
             throw new IllegalStateException("Missing 'url' attribute");
-        if( driver==null || driver.isEmpty() )
+        if( driver==null )
             throw new IllegalStateException("Missing 'driver' attribute");
         if( user==null || user.isEmpty() )
             throw new IllegalStateException("Missing 'user' attribute");
@@ -181,15 +188,18 @@ public class MigTool {
             throw new IllegalStateException("Unsupported dialect: " + dialect);
         if( locations==null )
             throw new IllegalStateException("Missing 'locations' attribute");
+    }
 
+    private void loadDriver() {
         try {
-            // load driver
-            Class.forName(driver);
+            Class.forName(driver.toString());
         }
         catch (ClassNotFoundException e) {
             throw new IllegalStateException("Unable to find driver class: " + driver, e);
         }
+    }
 
+    private void loadSchemaAndCatalog() {
         try( Connection conn = getConnection() ) {
             if( conn == null )
                 throw new IllegalStateException("Unable to acquire DB connection");
@@ -230,14 +240,14 @@ public class MigTool {
             final int cols=rs.getMetaData().getColumnCount();
             for( int i=1; i<=cols; i++ ) {
                 if( i>1 ) result.append(",");
-                result.append( String.valueOf(rs.getMetaData().getColumnName(i)) );
+                result.append(rs.getMetaData().getColumnName(i));
             }
             result.append( "}; ");
 
             int row=0;
             do {
                 row++;
-                result.append( "{row"+row+":");
+                result.append("{row").append(row).append(":");
                 for( int i=1; i<=cols; i++ ) {
                     if( i>1 ) result.append(",");
                     result.append( String.valueOf(rs.getObject(i)).replaceAll("\n"," ") );
@@ -259,14 +269,14 @@ public class MigTool {
     protected void createIfNotExists() {
         try (Connection conn = getConnection()) {
             if( !existTable(conn, MIGTOOL_TABLE) ) {
-                log.info("Creating MigTool schema using dialect: " + dialect);
-                String schema = Helper.getResourceAsString("/schema/" + dialect + ".sql");
+                log.info("Creating MigTool schema using dialect: {}", dialect.toString());
+                String schema = Helper.getResourceAsString("/schema/" + dialect.toString() + ".sql");
                 try ( Statement stm = conn.createStatement() ) {
                     stm.execute(schema);
                 }
+                log.info("Created");
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new IllegalStateException("Unable to create MigTool schema -- cause: " + e.getMessage(), e);
         }
     }
@@ -334,7 +344,7 @@ public class MigTool {
      * Apply the migration files
      */
     protected void apply() {
-        if( migrationEntries.size()==0 ) {
+        if(migrationEntries.isEmpty()) {
             log.info("No DB migrations found");
         }
 
@@ -350,7 +360,9 @@ public class MigTool {
 
     protected void checkRank(MigRecord entry) {
         try(Connection conn=getConnection(); Statement stm = conn.createStatement()) {
-            ResultSet rs = stm.executeQuery("select max(`rank`) from "+MIGTOOL_TABLE);
+            String rank = dialect.isPostgres() || dialect.isTestContainersPostgres()  ? "rank" : "`rank`";
+            String sql = String.format("select max(%s) from %s", rank, MIGTOOL_TABLE);
+            ResultSet rs = stm.executeQuery(sql);
             int last = rs.next() ? rs.getInt(1) : 0;
             int expected = last+1;
             if( entry.rank != expected) {
@@ -433,8 +445,11 @@ public class MigTool {
         // compute the delta
         int delta = (int)(System.currentTimeMillis()-now);
 
+        String columns = dialect.isPostgres() || dialect.isTestContainersPostgres()
+                ? "rank, script, checksum, created_on, execution_time"
+                : "`rank`,`script`,`checksum`,`created_on`,`execution_time`";
         // save the current migration
-        final String insertSql = "insert into "+MIGTOOL_TABLE+" (`rank`,`script`,`checksum`,`created_on`,`execution_time`) values (?,?,?,?,?)";
+        final String insertSql = String.format("insert into %s (%s) values (?,?,?,?,?)", MIGTOOL_TABLE, columns);
         try (Connection conn=getConnection(); PreparedStatement insert = conn.prepareStatement(insertSql)) {
             insert.setInt(1, entry.rank);
             insert.setString(2, entry.script);
@@ -447,7 +462,12 @@ public class MigTool {
     }
 
     protected boolean checkMigrated(MigRecord entry) {
-        String sql = "select `id`, `checksum`, `script` from " + MIGTOOL_TABLE + " where `rank` = ? and `script` = ?";
+        String sql;
+        if(dialect.isPostgres() || dialect.isTestContainersPostgres()) {
+            sql = "select id, checksum, script from " + MIGTOOL_TABLE + " where rank = ? and script = ?";
+        } else {
+            sql = "select `id`, `checksum`, `script` from " + MIGTOOL_TABLE + " where `rank` = ? and `script` = ?";
+        }
 
         try (Connection conn=getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
             stm.setInt(1, entry.rank);

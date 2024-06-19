@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
  *
  * @author Paolo Di Tommaso <paolo.ditommaso@gmail.com>
  */
-class MigRecord implements Comparable<MigRecord> {
+public class MigRecord implements Comparable<MigRecord> {
 
     enum Language {
         SQL,

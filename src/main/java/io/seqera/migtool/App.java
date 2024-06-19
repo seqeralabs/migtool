@@ -48,8 +48,8 @@ public class App implements Callable<Integer> {
                 .withUser(username)
                 .withPassword(password)
                 .withUrl(url)
-                .withDialect(dialect!=null ? dialect : dialectFromUrl(url))
-                .withDriver(driver!=null ? driver : driverFromUrl(url))
+                .withDialect(dialect!=null ? dialect : dialectFromUrl(url).toString())
+                .withDriver(driver!=null ? driver : driverFromUrl(url).toString())
                 .withLocations(location)
                 .withPattern(pattern);
 

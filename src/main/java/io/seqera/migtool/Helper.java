@@ -201,21 +201,31 @@ public class Helper {
         tryClose(closeable);
     }
 
-    static public String dialectFromUrl(String url) {
+    static public Dialect dialectFromUrl(String url) {
         if( url==null )
             return null;
         String[] parts = url.split(":");
-        return parts.length > 1 ? parts[1] : null;
+        return parts.length > 1 ? Dialect.from(parts[1]) : null;
     }
 
-    static public String driverFromUrl(String url) {
-        final String dialect = dialectFromUrl(url);
-        if( "mysql".equals(dialect) )
-            return "com.mysql.cj.jdbc.Driver";
-        if( "h2".equals(dialect))
-            return "org.h2.Driver";
-        if( "sqlite".equals(dialect))
-            return "org.sqlite.JDBC";
-        return null;
+    static public Driver driverFromUrl(String url) {
+        final Dialect dialect = dialectFromUrl(url);
+        if( dialect==null ) {
+            return null;
+        }
+        switch (dialect) {
+            case MYSQL:
+                return Driver.MYSQL;
+            case H2:
+                return Driver.H2;
+            case SQLITE:
+                return Driver.SQLITE;
+            case POSTGRES:
+                return Driver.POSTGRES;
+            case TCPOSTGRES:
+                return Driver.TCPOSTGRES;
+            default:
+                return null;
+        }
     }
 }
