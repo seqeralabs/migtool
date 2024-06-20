@@ -6,9 +6,6 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-import static io.seqera.migtool.Helper.driverFromUrl;
-import static io.seqera.migtool.Helper.dialectFromUrl;
-
 /**
  * Mig tool main launcher
  *
@@ -48,8 +45,8 @@ public class App implements Callable<Integer> {
                 .withUser(username)
                 .withPassword(password)
                 .withUrl(url)
-                .withDialect(dialect!=null ? dialect : dialectFromUrl(url).toString())
-                .withDriver(driver!=null ? driver : driverFromUrl(url).toString())
+                .withDialect(dialect)
+                .withDriver(driver)
                 .withLocations(location)
                 .withPattern(pattern);
 

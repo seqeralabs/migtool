@@ -210,22 +210,6 @@ public class Helper {
 
     static public Driver driverFromUrl(String url) {
         final Dialect dialect = dialectFromUrl(url);
-        if( dialect==null ) {
-            return null;
-        }
-        switch (dialect) {
-            case MYSQL:
-                return Driver.MYSQL;
-            case H2:
-                return Driver.H2;
-            case SQLITE:
-                return Driver.SQLITE;
-            case POSTGRES:
-                return Driver.POSTGRES;
-            case TCPOSTGRES:
-                return Driver.TCPOSTGRES;
-            default:
-                return null;
-        }
+        return dialect == null ? null : dialect.driver();
     }
 }

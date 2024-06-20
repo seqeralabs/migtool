@@ -5,7 +5,7 @@ public enum Driver {
     H2("org.h2.Driver"),
     SQLITE("org.sqlite.JDBC"),
     POSTGRES("org.postgresql.Driver"),
-    TCPOSTGRES("org.testcontainers.jdbc.ContainerDatabaseDriver");
+    ;
 
     private final String driver;
 

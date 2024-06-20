@@ -3,9 +3,8 @@
  */
 package io.seqera.migtool;
 
-import static io.seqera.migtool.Dialect.*;
-
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,8 +42,6 @@ public class MigTool {
     private static final Logger log = LoggerFactory.getLogger(MigTool.class);
 
     static final String MIGTOOL_TABLE = "MIGTOOL_HISTORY";
-
-    static final Dialect[] DIALECTS = {H2, MYSQL, MARIADB, SQLITE, POSTGRES, TCPOSTGRES};
 
     Driver driver;
     String url;
@@ -103,7 +100,7 @@ public class MigTool {
     }
 
     public MigTool withPattern(String pattern) {
-        if(pattern!=null && !pattern.equals(""))
+        if(pattern!=null && !pattern.isEmpty())
             this.pattern = Pattern.compile(pattern);
         return this;
     }
@@ -184,7 +181,7 @@ public class MigTool {
             throw new IllegalStateException("Missing 'user' attribute");
         if( password==null )
             throw new IllegalStateException("Missing 'password' attribute");
-        if( !Arrays.asList(DIALECTS).contains(dialect) )
+        if( !Arrays.asList(Dialect.values()).contains(dialect) )
             throw new IllegalStateException("Unsupported dialect: " + dialect);
         if( locations==null )
             throw new IllegalStateException("Missing 'locations' attribute");
@@ -303,23 +300,18 @@ public class MigTool {
         }
         else if( locations.startsWith(SOURCE_FILE)) {
             String path = locations.substring(SOURCE_FILE.length());
-            try {
-                Iterator<Path> itr = Files.newDirectoryStream(Paths.get(path)).iterator();
-
-                while( itr.hasNext() ) {
-                    Path it = itr.next();
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(path))) {
+                for (Path it : stream) {
                     MigRecord entry = MigRecord.parseFilePath(it, pattern);
-                    if( entry==null ) {
+                    if (entry == null) {
                         log.warn("Invalid migration source file: " + it);
-                    }
-                    else {
+                    } else {
                         addEntry(entry);
                     }
                 }
                 Collections.sort(this.migrationEntries);
-            }
-            catch (IOException e ) {
-                throw new IllegalArgumentException("Unable to list files from location: " + locations + " -- cause: " + e.getMessage());
+            } catch (IOException e) {
+                throw new IllegalArgumentException("Unable to list files from location: " + locations + " -- cause: " + e.getMessage(), e);
             }
         }
         else {
@@ -352,15 +344,14 @@ public class MigTool {
             for( MigRecord it : migrationEntries) {
                 applyMigration(it);
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new IllegalStateException("Unable perform migration -- cause: "+e.getMessage(), e);
         }
     }
 
     protected void checkRank(MigRecord entry) {
         try(Connection conn=getConnection(); Statement stm = conn.createStatement()) {
-            String rank = dialect.isPostgres() || dialect.isTestContainersPostgres()  ? "rank" : "`rank`";
+            String rank = dialect.isPostgres()  ? "rank" : "`rank`";
             String sql = String.format("select max(%s) from %s", rank, MIGTOOL_TABLE);
             ResultSet rs = stm.executeQuery(sql);
             int last = rs.next() ? rs.getInt(1) : 0;
@@ -368,8 +359,7 @@ public class MigTool {
             if( entry.rank != expected) {
                 throw new IllegalStateException(String.format("Invalid migration -- Expected: %d; current rank: %d; migration script: %s", expected, entry.rank, entry.script));
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             throw new IllegalStateException("Unable perform migration -- cause: "+e.getMessage(), e);
         }
     }
@@ -445,7 +435,7 @@ public class MigTool {
         // compute the delta
         int delta = (int)(System.currentTimeMillis()-now);
 
-        String columns = dialect.isPostgres() || dialect.isTestContainersPostgres()
+        String columns = dialect.isPostgres()
                 ? "rank, script, checksum, created_on, execution_time"
                 : "`rank`,`script`,`checksum`,`created_on`,`execution_time`";
         // save the current migration
@@ -463,7 +453,7 @@ public class MigTool {
 
     protected boolean checkMigrated(MigRecord entry) {
         String sql;
-        if(dialect.isPostgres() || dialect.isTestContainersPostgres()) {
+        if(dialect.isPostgres()) {
             sql = "select id, checksum, script from " + MIGTOOL_TABLE + " where rank = ? and script = ?";
         } else {
             sql = "select `id`, `checksum`, `script` from " + MIGTOOL_TABLE + " where `rank` = ? and `script` = ?";

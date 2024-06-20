@@ -38,7 +38,6 @@ class HelperTest extends Specification {
         Helper.dialectFromUrl() == null
         Helper.dialectFromUrl('jdbc:h2:file:./.db/h2/tower') == Dialect.H2
         Helper.dialectFromUrl('jdbc:mysql://foo.com:3306/licman') == Dialect.MYSQL
-        Helper.dialectFromUrl('jdbc:tc:postgresql:16-alpine:///test') == Dialect.TCPOSTGRES
         Helper.dialectFromUrl('jdbc:postgresql://localhost:5432/test') == Dialect.POSTGRES
     }
 
@@ -47,7 +46,6 @@ class HelperTest extends Specification {
         Helper.driverFromUrl() == null
         Helper.driverFromUrl('jdbc:h2:file:./.db/h2/tower') == Driver.H2
         Helper.driverFromUrl('jdbc:mysql://foo.com:3306/licman') == Driver.MYSQL
-        Helper.driverFromUrl('jdbc:tc:postgresql:16-alpine:///test') == Driver.TCPOSTGRES
         Helper.driverFromUrl('jdbc:postgresql://localhost:5432/test') == Driver.POSTGRES
     }
 }

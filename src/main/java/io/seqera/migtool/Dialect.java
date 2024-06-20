@@ -3,17 +3,19 @@ package io.seqera.migtool;
 import java.util.List;
 
 public enum Dialect {
-    MYSQL(List.of("mysql")),
-    H2(List.of("h2")),
-    MARIADB(List.of("mariadb")),
-    SQLITE(List.of("sqlite")),
-    POSTGRES(List.of("postgres", "postgresql")),
-    TCPOSTGRES(List.of("tc"));
+    MYSQL(List.of("mysql"), Driver.MYSQL),
+    H2(List.of("h2"), Driver.H2),
+    MARIADB(List.of("mariadb"), Driver.MYSQL),
+    SQLITE(List.of("sqlite"), Driver.SQLITE),
+    POSTGRES(List.of("postgres", "postgresql"), Driver.POSTGRES),
+    ;
 
     private final List<String> names;
+    private final Driver driver;
 
-    Dialect(List<String> names) {
+    Dialect(List<String> names, Driver driver) {
         this.names = names;
+        this.driver = driver;
     }
 
     public static Dialect from(String dialect) {
@@ -23,6 +25,19 @@ public enum Dialect {
             }
         }
         throw new IllegalStateException("Unknown dialect: " + dialect);
+    }
+
+    public static Dialect from(Driver driver) {
+        for (Dialect d : Dialect.values()) {
+            if (d.driver == driver) {
+                return d;
+            }
+        }
+        throw new IllegalStateException("Cannot get dialect for driver: " + driver);
+    }
+
+    public Driver driver() {
+        return driver;
     }
 
     boolean isPostgres() {
@@ -45,16 +60,8 @@ public enum Dialect {
         return this == MARIADB;
     }
 
-    boolean isTestContainersPostgres() {
-        return this == TCPOSTGRES;
-    }
-
     @Override
     public String toString() {
-        if (this == TCPOSTGRES) {
-            // the dialect is actually POSTGRES
-            return "postgres";
-        }
         return names.get(0);
     }
 }
