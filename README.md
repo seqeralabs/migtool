@@ -12,7 +12,7 @@ Only requirement is that migration files follow the pattern `V99__Some_name.[sql
 
 ### Patch and override files
 
-For each migration file that needs to be corrected a pair of `.patch.sql` and `.override.sql` must exists. 
+For each migration file that needs to be corrected a pair of `.patch.sql` and `.override.sql` must exist. 
 
 The behaviour will follow these rules:
 - **WHEN** file`.sql` exists and was executed **AND** file`.patch.sql`, file.override.sql pair exists -> apply patch
@@ -25,33 +25,33 @@ If for a given file there is only either a single .patch or a single .override t
 MigTool is designed to be embedded in the target app. Use the following idiom: 
 
 ```groovy
-    MigTool tool = new MigTool();
+    MigTool tool = new MigTool.Builder()
             .withDriver('org.h2.Driver')
             .withDialect('h2')
             .withUrl('jdbc:h2:mem:test')
             .withUser('sa')
             .withPassword('')
             .withLocations('classpath:test')
+            .build()
       
     try {
-        tool.run();
+        tool.run()
     }
     finally {
-        tool.close();
+        tool.close()
     }
 ``` 
 
 ## Binary release 
 
-MigTool is also released as a pre-compiled Linux binary including H2 and MySQL drivers. To use it, download the 
-binary package at [this link](https://github.com/seqeralabs/migtool/releases/latest), then grant execute permission, 
-finally run it following the example below:
+MigTool is also released as a pre-compiled Linux binary including H2, MySQL and Postgres drivers. To use it, download the 
+binary package at [this link](https://github.com/seqeralabs/migtool/releases/latest), then grant execute permission, finally run it following the example below:
 
 ```bash
 ./migtool \
    --username <username> \
    --password <password> \
-   --url jdbc:mysql://<host>:3306/<schema> \
+   --url jdbc:<dialect>://<host>:3306/<schema> \
    --location file:/path/to/migration/scripts
 ```
 
@@ -66,8 +66,10 @@ finally run it following the example below:
 * `password`: Target database connection password.
 * `url`: Target database JDBC connection URL.
 * `location`: File system path where migration scripts are located. Path must be prefixed with `file:`.
-* `dialect`: Either `mysql` or `h2` (optional).
+* `dialect`: Either `mysql`, `h2` or `postgres (postgresql)` (optional).
 * `driver`: JDBC driver class name to connect the target database (optional).
+
+In case the `driver` or `dialect` options are not provided, the tool will try to infer the driver class name from the `url` provided.
 
 ## License 
 
