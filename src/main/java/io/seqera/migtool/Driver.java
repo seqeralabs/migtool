@@ -1,5 +1,7 @@
 package io.seqera.migtool;
 
+import groovyjarjarantlr4.v4.runtime.misc.Nullable;
+
 public enum Driver {
     MYSQL("com.mysql.cj.jdbc.Driver"),
     H2("org.h2.Driver"),
@@ -13,13 +15,19 @@ public enum Driver {
         this.driver = driver;
     }
 
-    static Driver from(String driver) {
+    static Driver fromDriverName(String driver) {
         for (Driver d : Driver.values()) {
             if (d.driver.equals(driver)) {
                 return d;
             }
         }
         throw new IllegalStateException("Unknown driver: " + driver);
+    }
+
+    @Nullable
+    static Driver fromUrl(@Nullable String url) {
+        final Dialect dialect = Dialect.fromUrl(url);
+        return dialect == null ? null : dialect.driver();
     }
 
     @Override

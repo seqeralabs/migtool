@@ -20,13 +20,14 @@ class PostgresTest extends Specification {
     MigTool tool
 
     def setup() {
-        tool = new MigTool()
+        tool = new MigTool.Builder()
                 .withDriver(Driver.POSTGRES.toString())
                 .withDialect(Dialect.POSTGRES.toString())
                 .withUrl(container.getJdbcUrl())
                 .withUser(container.getUsername())
                 .withPassword(container.getPassword())
                 .withLocations('file:src/test/resources/migrate-db/postgres')
+                .build()
     }
 
     def 'should do something'() {

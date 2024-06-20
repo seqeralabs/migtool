@@ -14,7 +14,7 @@ import picocli.CommandLine.Option;
 @Command(name = "migtool", mixinStandardHelpOptions = true, description = "Database schema migration tool")
 public class App implements Callable<Integer> {
 
-    private static System.Logger logger = System.getLogger(App.class.getSimpleName());
+    private static final System.Logger logger = System.getLogger(App.class.getSimpleName());
 
     @Option(names = {"-u", "--username"}, description = "DB connection user")
     private String username;
@@ -40,15 +40,15 @@ public class App implements Callable<Integer> {
     @Override
     public Integer call() {
 
-        // set optional fields
-        MigTool tool = new MigTool()
+        MigTool tool = new MigTool.Builder()
                 .withUser(username)
                 .withPassword(password)
                 .withUrl(url)
                 .withDialect(dialect)
                 .withDriver(driver)
                 .withLocations(location)
-                .withPattern(pattern);
+                .withPattern(pattern)
+                .build();
 
         try {
             tool.run();

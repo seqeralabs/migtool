@@ -15,7 +15,7 @@ import java.nio.file.Path
 @Requires({System.getenv('NATIVE_BINARY_PATH')})
 class SqliteTest extends Specification {
 
-    Path dbName;
+    Path dbName
 
     def setup() {
         dbName = Files.createTempFile("db_${UUID.randomUUID().toString()}","db")

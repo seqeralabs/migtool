@@ -29,13 +29,14 @@ class SqliteTest extends Specification {
 
     def 'should do something'  () {
         given:
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.sqlite.JDBC')
                 .withDialect('sqlite')
                 .withUser("user")
                 .withPassword("password")
                 .withUrl("jdbc:sqlite:${dbName}")
                 .withLocations('file:src/test/resources/migrate-db/sqlite')
+                .build()
 
         when:
         tool.run()

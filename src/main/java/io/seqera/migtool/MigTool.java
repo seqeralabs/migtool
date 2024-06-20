@@ -3,6 +3,10 @@
  */
 package io.seqera.migtool;
 
+import groovy.lang.Binding;
+import groovy.lang.Closure;
+import groovy.lang.GroovyShell;
+import groovy.sql.Sql;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -15,13 +19,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Pattern;
-
-import groovy.lang.Binding;
-import groovy.lang.Closure;
-import groovy.lang.GroovyShell;
-import groovy.sql.Sql;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,66 +48,32 @@ public class MigTool {
 
     static final String MIGTOOL_TABLE = "MIGTOOL_HISTORY";
 
-    Driver driver;
-    String url;
-    String user;
-    String password;
-    Dialect dialect;
-    String locations;
-    ClassLoader classLoader;
-    Pattern pattern;
-    String schema;
-    String catalog;
-
+    private final Driver driver;
+    private final String url;
+    private final String user;
+    private final String password;
+    private final Dialect dialect;
+    private final String locations;
+    private final ClassLoader classLoader;
+    private final Pattern pattern;
+    private String schema;
+    private String catalog;
     private final List<MigRecord> migrationEntries;
     private final List<MigRecord> patchEntries;
     private final List<MigRecord> overrideEntries;
 
-    public MigTool() {
+    private MigTool(Builder builder) {
+        this.driver = builder.driver;
+        this.url = builder.url;
+        this.user = builder.user;
+        this.password = builder.password;
+        this.dialect = builder.dialect;
+        this.locations = builder.locations;
+        this.classLoader = builder.classLoader;
+        this.pattern = builder.pattern;
         this.migrationEntries = new ArrayList<>();
         this.patchEntries = new ArrayList<>();
         this.overrideEntries = new ArrayList<>();
-    }
-
-    public MigTool withDriver(String driver) {
-        this.driver = Driver.from(driver);
-        return this;
-    }
-
-    public MigTool withUrl(String url) {
-        this.url = url;
-        return this;
-    }
-
-    public MigTool withUser(String user) {
-        this.user = user;
-        return this;
-    }
-
-    public MigTool withPassword(String password) {
-        this.password = password;
-        return this;
-    }
-
-    public MigTool withDialect(String dialect) {
-        this.dialect = Dialect.from(dialect);
-        return this;
-    }
-
-    public MigTool withLocations(String locations) {
-        this.locations = locations;
-        return this;
-    }
-
-    public MigTool withClassLoader(ClassLoader loader) {
-        this.classLoader = loader;
-        return this;
-    }
-
-    public MigTool withPattern(String pattern) {
-        if(pattern!=null && !pattern.isEmpty())
-            this.pattern = Pattern.compile(pattern);
-        return this;
     }
 
     /**
@@ -251,7 +222,7 @@ public class MigTool {
                 }
                 result.append( "}; ");
             } while( rs.next() );
-            
+
             return result.toString();
         }
         catch (Exception e) {
@@ -516,6 +487,74 @@ public class MigTool {
             long delta = System.currentTimeMillis() - ts;
             String msg = "GROOVY MIGRATION FAILED - PLEASE RECOVER THE DATABASE FROM THE LAST BACKUP - Elapsed time: "+(delta)+"ms";
             throw new IllegalStateException(msg, e);
+        }
+    }
+
+    public static class Builder {
+        private String driverName;
+        private Driver driver;
+        private String url;
+        private String user;
+        private String password;
+        private String dialectName;
+        private Dialect dialect;
+        private String locations;
+        private ClassLoader classLoader;
+        private Pattern pattern;
+
+        public Builder withDriver(String driverName) {
+            this.driverName = driverName;
+            return this;
+        }
+
+        public Builder withUrl(String url) {
+            this.url = url;
+            return this;
+        }
+
+        public Builder withUser(String user) {
+            this.user = user;
+            return this;
+        }
+
+        public Builder withPassword(String password) {
+            this.password = password;
+            return this;
+        }
+
+        public Builder withDialect(String dialectName) {
+            this.dialectName = dialectName;
+            return this;
+        }
+
+        public Builder withLocations(String locations) {
+            this.locations = locations;
+            return this;
+        }
+
+        public Builder withClassLoader(ClassLoader loader) {
+            this.classLoader = loader;
+            return this;
+        }
+
+        public Builder withPattern(String pattern) {
+            if(pattern != null && !pattern.isEmpty())
+                this.pattern = Pattern.compile(pattern);
+            return this;
+        }
+
+        public MigTool build() {
+            if(driverName != null) {
+                this.driver = Driver.fromDriverName(driverName);
+            } else {
+                this.driver = Driver.fromUrl(url);
+            }
+            if(dialectName != null) {
+                this.dialect = Dialect.fromDialectName(dialectName);
+            } else {
+                this.dialect = Dialect.fromUrl(url);
+            }
+            return new MigTool(this);
         }
     }
 

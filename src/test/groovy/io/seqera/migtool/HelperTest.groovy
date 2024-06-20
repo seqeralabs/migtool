@@ -33,19 +33,4 @@ class HelperTest extends Specification {
         Helper.computeSha256('Hola mundo' ) == 'ca8f60b2cc7f05837d98b208b57fb6481553fc5f1219d59618fd025002a66f5c'
     }
 
-    def 'should parse dialect from url' () {
-        expect:
-        Helper.dialectFromUrl() == null
-        Helper.dialectFromUrl('jdbc:h2:file:./.db/h2/tower') == Dialect.H2
-        Helper.dialectFromUrl('jdbc:mysql://foo.com:3306/licman') == Dialect.MYSQL
-        Helper.dialectFromUrl('jdbc:postgresql://localhost:5432/test') == Dialect.POSTGRES
-    }
-
-    def 'should get driver from url' () {
-        expect:
-        Helper.driverFromUrl() == null
-        Helper.driverFromUrl('jdbc:h2:file:./.db/h2/tower') == Driver.H2
-        Helper.driverFromUrl('jdbc:mysql://foo.com:3306/licman') == Driver.MYSQL
-        Helper.driverFromUrl('jdbc:postgresql://localhost:5432/test') == Driver.POSTGRES
-    }
 }

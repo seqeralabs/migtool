@@ -1,5 +1,6 @@
 package io.seqera.migtool;
 
+import groovyjarjarantlr4.v4.runtime.misc.Nullable;
 import java.util.List;
 
 public enum Dialect {
@@ -18,22 +19,22 @@ public enum Dialect {
         this.driver = driver;
     }
 
-    public static Dialect from(String dialect) {
+    static Dialect fromDialectName(String dialectName) {
         for (Dialect d : Dialect.values()) {
-            if (d.names.contains(dialect.toLowerCase())) {
+            if (d.names.contains(dialectName.toLowerCase())) {
                 return d;
             }
         }
-        throw new IllegalStateException("Unknown dialect: " + dialect);
+        throw new IllegalStateException("Unknown dialect: " + dialectName);
     }
 
-    public static Dialect from(Driver driver) {
-        for (Dialect d : Dialect.values()) {
-            if (d.driver == driver) {
-                return d;
-            }
+    @Nullable
+    static Dialect fromUrl(@Nullable String url) {
+        if (url == null) {
+            return null;
         }
-        throw new IllegalStateException("Cannot get dialect for driver: " + driver);
+        String[] parts = url.split(":");
+        return parts.length > 1 ? fromDialectName(parts[1]) : null;
     }
 
     public Driver driver() {
@@ -50,14 +51,6 @@ public enum Dialect {
 
     boolean isH2() {
         return this == H2;
-    }
-
-    boolean isSQLite() {
-        return this == SQLITE;
-    }
-
-    boolean isMariaDB() {
-        return this == MARIADB;
     }
 
     @Override

@@ -26,13 +26,14 @@ class MysqlTest extends Specification {
 
     def 'should do something'  () {
         given:
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('com.mysql.cj.jdbc.Driver')
                 .withDialect('mysql')
                 .withUrl(container.getJdbcUrl())
                 .withUser(container.getUsername())
                 .withPassword(container.getPassword())
                 .withLocations('file:src/test/resources/migrate-db/mysql')
+                .build()
 
         when:
         tool.run()
@@ -46,13 +47,14 @@ class MysqlTest extends Specification {
 
     def 'should run a successful Groovy script' () {
         given:
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('com.mysql.cj.jdbc.Driver')
                 .withDialect('mysql')
                 .withUrl(container.getJdbcUrl())
                 .withUser(container.getUsername())
                 .withPassword(container.getPassword())
                 .withLocations('file:src/test/resources/migrate-db/mysql')
+                .build()
 
         and: 'set up the initial tables'
         tool.run()
@@ -98,13 +100,14 @@ class MysqlTest extends Specification {
 
     def 'should run a failing Groovy script' () {
         given:
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('com.mysql.cj.jdbc.Driver')
                 .withDialect('mysql')
                 .withUrl(container.getJdbcUrl())
                 .withUser(container.getUsername())
                 .withPassword(container.getPassword())
                 .withLocations('file:src/test/resources/migrate-db/mysql')
+                .build()
 
         and: 'set up the initial tables'
         tool.run()

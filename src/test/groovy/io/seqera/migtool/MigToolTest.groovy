@@ -18,13 +18,14 @@ class MigToolTest extends Specification {
         folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
         and:
 
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test1;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
+                .build()
 
         when:
         tool.init()
@@ -65,13 +66,14 @@ class MigToolTest extends Specification {
 
     def 'should apply class path migration' () {
         given:
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test2;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("classpath:db/mariadb")
+                .build()
 
         when:
         tool.init()
@@ -117,7 +119,7 @@ class MigToolTest extends Specification {
 
     def 'should apply class path migration with custom pattern' () {
         given:
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test3;DB_CLOSE_DELAY=-1')
@@ -125,6 +127,7 @@ class MigToolTest extends Specification {
                 .withPassword('')
                 .withLocations("classpath:db/mariadb")
                 .withPattern(/v(\d\d)-.+/)
+                .build()
 
         when:
         tool.init()
@@ -143,7 +146,7 @@ class MigToolTest extends Specification {
 
     def 'should apply migration coming from a jar file' () {
         given:
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test4;DB_CLOSE_DELAY=-1')
@@ -151,6 +154,7 @@ class MigToolTest extends Specification {
                 .withPassword('')
                 .withClassLoader(ClassFromJarWithResources.classLoader)
                 .withLocations("classpath:db/migrations")
+                .build()
 
         when:
         tool.init()
@@ -195,13 +199,14 @@ class MigToolTest extends Specification {
         folder.resolve('V01__file1.override.sql').text = 'create table OVERRIDE ( col1 varchar(1) ); '
         and:
 
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test5;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
+                .build()
 
         when:
         tool.init()
@@ -218,13 +223,14 @@ class MigToolTest extends Specification {
         folder.resolve('V01__file1.patch.sql').text = 'create table PATCH ( col1 varchar(1) ); '
         and:
 
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test6;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
+                .build()
 
         when:
         tool.init()
@@ -243,13 +249,14 @@ class MigToolTest extends Specification {
         folder.resolve('V02__file2.patch.sql').text = 'create table PATCH ( col1 varchar(1) ); '
         and:
 
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test7;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
+                .build()
 
         when:
         tool.init()
@@ -275,13 +282,14 @@ class MigToolTest extends Specification {
         folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
         and:
 
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test8;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
+                .build()
 
         when:
         tool.init()
@@ -330,13 +338,14 @@ class MigToolTest extends Specification {
         folder.resolve('V01__file1.patch.sql').text = 'create table PATCH ( col1 varchar(1) ); '
         folder.resolve('V01__file1.override.sql').text = 'create table OVERRIDE ( col2 varchar(2) );'
         and: 'init tool with new folder'
-        tool = new MigTool()
+        tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test8;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
+                .build()
 
         tool.init()
         and:
@@ -396,13 +405,14 @@ class MigToolTest extends Specification {
         folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
         and:
 
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test11;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
+                .build()
 
         when:
         tool.init()
@@ -449,13 +459,14 @@ class MigToolTest extends Specification {
         folder.resolve('V03__file3.override.sql').text = 'create table OVERRIDE ( col2 varchar(2) );'
         folder.resolve('V03__file3.patch.sql').text = 'create table PATCH ( col2 varchar(2) );'
         and: 'init tool with new folder'
-        tool = new MigTool()
+        tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test11;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
+                .build()
 
         tool.init()
         and:
@@ -513,13 +524,14 @@ class MigToolTest extends Specification {
         folder.resolve('x03__xyz.txt').text = 'This field should be ignored'
         and:
 
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test13;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
+                .build()
 
         when:
         tool.init()
@@ -574,13 +586,14 @@ class MigToolTest extends Specification {
 
     def 'should apply class path migration with patch and override files' () {
         given:
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test14;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("classpath:db/mysql")
+                .build()
 
         when:
         tool.init()
@@ -641,13 +654,14 @@ class MigToolTest extends Specification {
         folder.resolve('V01__file1.PATCH.patch.sql').text = 'create table PATCHSECOND ( col1 varchar(1) ); '
         and:
 
-        def tool = new MigTool()
+        def tool = new MigTool.Builder()
                 .withDriver('org.h2.Driver')
                 .withDialect('h2')
                 .withUrl('jdbc:h2:mem:test15;DB_CLOSE_DELAY=-1')
                 .withUser('sa')
                 .withPassword('')
                 .withLocations("file:$folder")
+                .build()
 
         when:
         tool.init()

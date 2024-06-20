@@ -201,15 +201,4 @@ public class Helper {
         tryClose(closeable);
     }
 
-    static public Dialect dialectFromUrl(String url) {
-        if( url==null )
-            return null;
-        String[] parts = url.split(":");
-        return parts.length > 1 ? Dialect.from(parts[1]) : null;
-    }
-
-    static public Driver driverFromUrl(String url) {
-        final Dialect dialect = dialectFromUrl(url);
-        return dialect == null ? null : dialect.driver();
-    }
 }
