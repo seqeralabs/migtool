@@ -7,6 +7,9 @@ import groovy.lang.Binding;
 import groovy.lang.Closure;
 import groovy.lang.GroovyShell;
 import groovy.sql.Sql;
+import io.seqera.migtool.strategy.DialectQueryBuilder;
+import io.seqera.migtool.strategy.NotPostgresQueryBuilder;
+import io.seqera.migtool.strategy.PostgresQueryBuilder;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -61,6 +64,7 @@ public class MigTool {
     private final List<MigRecord> migrationEntries;
     private final List<MigRecord> patchEntries;
     private final List<MigRecord> overrideEntries;
+    private final DialectQueryBuilder queryBuilder;
 
     private MigTool(Builder builder) {
         this.driver = builder.driver;
@@ -74,6 +78,7 @@ public class MigTool {
         this.migrationEntries = new ArrayList<>();
         this.patchEntries = new ArrayList<>();
         this.overrideEntries = new ArrayList<>();
+        this.queryBuilder = this.dialect.isPostgres() ? new PostgresQueryBuilder(MIGTOOL_TABLE) : new NotPostgresQueryBuilder(MIGTOOL_TABLE);
     }
 
     /**
@@ -322,8 +327,7 @@ public class MigTool {
 
     protected void checkRank(MigRecord entry) {
         try(Connection conn=getConnection(); Statement stm = conn.createStatement()) {
-            String rank = dialect.isPostgres()  ? "rank" : "`rank`";
-            String sql = String.format("select max(%s) from %s", rank, MIGTOOL_TABLE);
+            String sql = queryBuilder.buildCheckRankQuery();
             ResultSet rs = stm.executeQuery(sql);
             int last = rs.next() ? rs.getInt(1) : 0;
             int expected = last+1;
@@ -406,11 +410,7 @@ public class MigTool {
         // compute the delta
         int delta = (int)(System.currentTimeMillis()-now);
 
-        String columns = dialect.isPostgres()
-                ? "rank, script, checksum, created_on, execution_time"
-                : "`rank`,`script`,`checksum`,`created_on`,`execution_time`";
-        // save the current migration
-        final String insertSql = String.format("insert into %s (%s) values (?,?,?,?,?)", MIGTOOL_TABLE, columns);
+        String insertSql = queryBuilder.buildMigrateQuery();
         try (Connection conn=getConnection(); PreparedStatement insert = conn.prepareStatement(insertSql)) {
             insert.setInt(1, entry.rank);
             insert.setString(2, entry.script);
@@ -423,13 +423,7 @@ public class MigTool {
     }
 
     protected boolean checkMigrated(MigRecord entry) {
-        String sql;
-        if(dialect.isPostgres()) {
-            sql = "select id, checksum, script from " + MIGTOOL_TABLE + " where rank = ? and script = ?";
-        } else {
-            sql = "select `id`, `checksum`, `script` from " + MIGTOOL_TABLE + " where `rank` = ? and `script` = ?";
-        }
-
+        String sql = queryBuilder.buildCheckMigratedQuery();
         try (Connection conn=getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
             stm.setInt(1, entry.rank);
             stm.setString(2, entry.script);
@@ -544,16 +538,8 @@ public class MigTool {
         }
 
         public MigTool build() {
-            if(driverName != null) {
-                this.driver = Driver.fromDriverName(driverName);
-            } else {
-                this.driver = Driver.fromUrl(url);
-            }
-            if(dialectName != null) {
-                this.dialect = Dialect.fromDialectName(dialectName);
-            } else {
-                this.dialect = Dialect.fromUrl(url);
-            }
+            this.driver = driverName != null ? Driver.fromDriverName(driverName) : Driver.fromUrl(url);
+            this.dialect = dialectName != null ? Dialect.fromDialectName(dialectName) : Dialect.fromUrl(url);
             return new MigTool(this);
         }
     }
