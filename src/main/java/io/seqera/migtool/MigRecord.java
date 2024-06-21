@@ -40,6 +40,16 @@ public class MigRecord implements Comparable<MigRecord> {
     boolean isPatch;
     boolean isOverride;
 
+    /**
+     * This constructor is needed to be called from Java applications
+     * **/
+    public MigRecord(List<String> statements) {
+        this.statements = statements;
+    }
+
+    public MigRecord() {
+    }
+
     @Override
     public int compareTo(MigRecord other) {
         return this.rank - other.rank;
@@ -55,9 +65,13 @@ public class MigRecord implements Comparable<MigRecord> {
 
         int p = path.lastIndexOf("/");
         String fileName = p==-1 ? path : path.substring(p+1);
-        
+
+        return extractRankAndCreateRecord(pattern, fileName, readContent(path));
+    }
+
+    private static MigRecord extractRankAndCreateRecord(Pattern pattern, String fileName, String path) {
         Matcher m = pattern.matcher(fileName);
-        if( !m.matches() ) {
+        if (!m.matches()) {
             return null;
         }
 
@@ -69,10 +83,9 @@ public class MigRecord implements Comparable<MigRecord> {
             return null;
         }
 
-        String content = readContent(path);
         int rank = Integer.parseInt(m.group(1));
 
-        return createRecord(fileName, rank, content);
+        return createRecord(fileName, rank, path);
     }
 
     static MigRecord parseFilePath(Path path, Pattern pattern) {
@@ -80,23 +93,7 @@ public class MigRecord implements Comparable<MigRecord> {
 
         String fileName = path.getFileName().toString();
 
-        Matcher m = pattern.matcher(fileName);
-        if( !m.matches() ) {
-            return null;
-        }
-
-        // We do not allow files with double fix or amend, ex. V01__organisation.fixed.fixed.sql
-        if (countMatch(fileName, OVERRIDE_PATTERN) > 1) {
-            return null;
-        }
-        if (countMatch(fileName, PATCH_PATTERN) > 1) {
-            return null;
-        }
-
-        String content = readContent(path);
-        int rank = Integer.parseInt(m.group(1));
-
-        return createRecord(fileName, rank, content);
+        return extractRankAndCreateRecord(pattern, fileName, readContent(path));
     }
 
     private static long countMatch(String name, Pattern pattern) {
@@ -144,10 +141,10 @@ public class MigRecord implements Comparable<MigRecord> {
         String[] tokens = sql.split(";");
         List<String> result = new ArrayList<>(tokens.length);
 
-        for( int i=0; i<tokens.length; i++) {
-            String clean = tokens[i].trim();
-            if( clean.length()>0 )
-                result.add( clean + ';' ) ;
+        for (String token : tokens) {
+            String clean = token.trim();
+            if (!clean.isEmpty())
+                result.add(clean + ';');
         }
 
         return result;

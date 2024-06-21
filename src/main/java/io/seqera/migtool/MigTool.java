@@ -460,7 +460,10 @@ public class MigTool {
         }
     }
 
-    protected void runGroovyMigration(MigRecord entry) {
+    /**
+     * Allows to run a single groovy migration. Usually used for testing purposes.
+     * **/
+    public void runGroovyMigration(MigRecord entry) {
         final long ts = System.currentTimeMillis();
 
         try (Connection conn = getConnection()) {

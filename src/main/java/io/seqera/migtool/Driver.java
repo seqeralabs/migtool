@@ -1,6 +1,6 @@
 package io.seqera.migtool;
 
-import groovyjarjarantlr4.v4.runtime.misc.Nullable;
+import jakarta.annotation.Nullable;
 
 public enum Driver {
     MYSQL("com.mysql.cj.jdbc.Driver"),

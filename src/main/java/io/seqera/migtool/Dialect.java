@@ -1,6 +1,6 @@
 package io.seqera.migtool;
 
-import groovyjarjarantlr4.v4.runtime.misc.Nullable;
+import jakarta.annotation.Nullable;
 import java.util.List;
 
 public enum Dialect {

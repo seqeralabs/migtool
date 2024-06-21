@@ -53,6 +53,9 @@ dependencies {
     implementation "org.codehaus.groovy:groovy:3.0.9"
     implementation "org.codehaus.groovy:groovy-sql:3.0.9"
 
+    // brings some standard annotations to be used
+    implementation 'jakarta.annotation:jakarta.annotation-api:3.0.0'
+
     // Use the latest Groovy version for Spock testing
     testImplementation "org.codehaus.groovy:groovy:3.0.9"
     testImplementation "org.codehaus.groovy:groovy-nio:3.0.9"
