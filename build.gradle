@@ -101,9 +101,9 @@ publishing {
             url = publishRepoUrl
             credentials(AwsCredentials) {
                 // keys are defined in the `gradle.properties` file
-                accessKey aws_access_key_id
-                secretKey aws_secret_access_key
-                sessionToken aws_session_token
+                accessKey(aws_access_key_id)
+                secretKey(aws_secret_access_key)
+                if(aws_session_token) { sessionToken(aws_session_token) }
             }
         }
     }
