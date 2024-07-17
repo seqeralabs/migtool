@@ -45,7 +45,7 @@ dependencies {
     runtimeOnly 'mysql:mysql-connector-java:8.0.22'
     runtimeOnly 'com.h2database:h2:1.4.200'
     runtimeOnly 'mysql:mysql-connector-java:8.0.28'
-    runtimeOnly 'org.xerial:sqlite-jdbc:3.42.0.0'
+    runtimeOnly 'org.xerial:sqlite-jdbc:3.36.0.3'
     implementation 'info.picocli:picocli:4.6.3'
     annotationProcessor 'info.picocli:picocli-codegen:4.6.3'
 
