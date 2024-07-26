@@ -6,5 +6,11 @@
  * Detailed information about configuring a multi-project build in Gradle can be found
  * in the user manual at https://docs.gradle.org/6.7/userguide/multi_project_builds.html
  */
+plugins {
+    // required to download the toolchain (jdk) from a remote repository
+    // https://github.com/gradle/foojay-toolchains
+    // https://docs.gradle.org/current/userguide/toolchains.html#sub:download_repositories
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.7.0"
+}
 
 rootProject.name = 'migtool'
