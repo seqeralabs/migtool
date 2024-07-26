@@ -4,10 +4,10 @@ name: MigTool continuous build
 on:
   push:
     branches:
-      - '*'
+      - '**'
       - '!refs/tags/.*'
     tags-ignore:
-      - '*'
+      - '**'
 
 jobs:
   build:
