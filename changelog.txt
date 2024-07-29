@@ -1,5 +1,15 @@
 MIGTOOL CHANGE-LOG
 ===================
+1.5.1 - 29 Jul 2024
+- Bump sqlite to version 3.42.0.0 (#47) [4725b896]
+- Bump foojey resolver to settings [137f380f]
+- Revert "bumps sqllite dependency to solve critical security" [759987d4]
+- bumps sqllite dependency to solve critical security [d3f96874]
+- chore: update 'actions/upload-artifact' to v4 [d1d6ba2c]
+- fix upload the results of the native tests [504020d4]
+- Reverts compatibility of compileJava to 11 (#40) [dac42944]
+- Bump Gradle version to 8.5 (#36) [c3ea6b50]
+
 1.5.0 - 22 Jan 2024
 - Add support for patch and override files
 
