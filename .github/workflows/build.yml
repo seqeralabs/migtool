@@ -54,7 +54,7 @@ jobs:
       - name: Upload linux native image artifact
         uses: actions/upload-artifact@v4
         with:
-          name: migtool_linux
+          name: migtool-linux
           path: build/native/nativeCompile/migtool
           overwrite: true
 
