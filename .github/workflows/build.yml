@@ -73,22 +73,23 @@ jobs:
 
   release:
     name: Release
-    if: "contains(github.event.head_commit.message, '[release]') && github.event.ref=='refs/heads/master'"
+    if: "contains(github.event.head_commit.message, '[release]')"
     needs: [ build ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Download all build artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
 
       - name: Setup Java for JReleaser
         uses: actions/setup-java@v1
         with:
           java-version: 17
+          distribution: 'adopt'
 
       - name: Version
         id: version
