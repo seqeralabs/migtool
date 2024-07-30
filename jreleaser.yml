@@ -76,6 +76,6 @@ distributions:
   migtool:
     type: NATIVE_IMAGE
     artifacts:
-      - path: "migtool_linux/migtool"
+      - path: "migtool-linux/migtool"
         transform: "{{distributionName}}-linux-x86_64"
         platform: linux-x86_64
