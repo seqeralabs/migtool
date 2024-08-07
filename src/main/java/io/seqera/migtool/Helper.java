@@ -216,6 +216,8 @@ public class Helper {
             return "org.h2.Driver";
         if( "sqlite".equals(dialect))
             return "org.sqlite.JDBC";
+        if( "postgresql".equals(dialect))
+            return "org.postgresql.Driver";
         return null;
     }
 }

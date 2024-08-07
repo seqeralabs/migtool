@@ -21,6 +21,8 @@ import groovy.lang.Binding;
 import groovy.lang.Closure;
 import groovy.lang.GroovyShell;
 import groovy.sql.Sql;
+import io.seqera.migtool.builder.DefaultSqlTemplate;
+import io.seqera.migtool.builder.SqlTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +44,7 @@ public class MigTool {
 
     static final String MIGTOOL_TABLE = "MIGTOOL_HISTORY";
 
-    static final String[] DIALECTS = {"h2", "mysql", "mariadb","sqlite"};
+    static final String[] DIALECTS = {"h2", "mysql", "mariadb","sqlite","postgresql"};
 
     String driver;
     String url;
@@ -54,6 +56,7 @@ public class MigTool {
     Pattern pattern;
     String schema;
     String catalog;
+    SqlTemplate builder = new DefaultSqlTemplate();
 
     private final List<MigRecord> migrationEntries;
     private final List<MigRecord> patchEntries;
@@ -103,6 +106,11 @@ public class MigTool {
     public MigTool withPattern(String pattern) {
         if(pattern!=null && !pattern.equals(""))
             this.pattern = Pattern.compile(pattern);
+        return this;
+    }
+
+    public MigTool withBuilder(SqlTemplate builder) {
+        this.builder = builder;
         return this;
     }
 
@@ -350,7 +358,7 @@ public class MigTool {
 
     protected void checkRank(MigRecord entry) {
         try(Connection conn=getConnection(); Statement stm = conn.createStatement()) {
-            ResultSet rs = stm.executeQuery("select max(`rank`) from "+MIGTOOL_TABLE);
+            ResultSet rs = stm.executeQuery(builder.selectMaxRank(MIGTOOL_TABLE));
             int last = rs.next() ? rs.getInt(1) : 0;
             int expected = last+1;
             if( entry.rank != expected) {
@@ -434,7 +442,7 @@ public class MigTool {
         int delta = (int)(System.currentTimeMillis()-now);
 
         // save the current migration
-        final String insertSql = "insert into "+MIGTOOL_TABLE+" (`rank`,`script`,`checksum`,`created_on`,`execution_time`) values (?,?,?,?,?)";
+        final String insertSql = builder.insetMigration(MIGTOOL_TABLE);
         try (Connection conn=getConnection(); PreparedStatement insert = conn.prepareStatement(insertSql)) {
             insert.setInt(1, entry.rank);
             insert.setString(2, entry.script);
@@ -447,7 +455,7 @@ public class MigTool {
     }
 
     protected boolean checkMigrated(MigRecord entry) {
-        String sql = "select `id`, `checksum`, `script` from " + MIGTOOL_TABLE + " where `rank` = ? and `script` = ?";
+        final String sql = builder.selectMigration(MIGTOOL_TABLE);
 
         try (Connection conn=getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
             stm.setInt(1, entry.rank);
