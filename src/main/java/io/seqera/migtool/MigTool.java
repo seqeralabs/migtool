@@ -7,9 +7,8 @@ import groovy.lang.Binding;
 import groovy.lang.Closure;
 import groovy.lang.GroovyShell;
 import groovy.sql.Sql;
-import io.seqera.migtool.strategy.DialectQueryBuilder;
-import io.seqera.migtool.strategy.NotPostgresQueryBuilder;
-import io.seqera.migtool.strategy.PostgresQueryBuilder;
+import io.seqera.migtool.sql.DefaultSqlTemplate;
+import io.seqera.migtool.sql.PostgresSqlTemplate;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -64,7 +63,7 @@ public class MigTool {
     private final List<MigRecord> migrationEntries;
     private final List<MigRecord> patchEntries;
     private final List<MigRecord> overrideEntries;
-    private final DialectQueryBuilder queryBuilder;
+    private final DefaultSqlTemplate queryBuilder;
 
     private MigTool(Builder builder) {
         this.driver = builder.driver;
@@ -78,7 +77,7 @@ public class MigTool {
         this.migrationEntries = new ArrayList<>();
         this.patchEntries = new ArrayList<>();
         this.overrideEntries = new ArrayList<>();
-        this.queryBuilder = this.dialect.isPostgres() ? new PostgresQueryBuilder(MIGTOOL_TABLE) : new NotPostgresQueryBuilder(MIGTOOL_TABLE);
+        this.queryBuilder = this.dialect.isPostgres() ? new PostgresSqlTemplate(MIGTOOL_TABLE) : new DefaultSqlTemplate(MIGTOOL_TABLE);
     }
 
     /**
