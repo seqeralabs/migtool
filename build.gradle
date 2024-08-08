@@ -46,6 +46,7 @@ dependencies {
     runtimeOnly 'com.h2database:h2:1.4.200'
     runtimeOnly 'mysql:mysql-connector-java:8.0.28'
     runtimeOnly 'org.xerial:sqlite-jdbc:3.42.0.0'
+    runtimeOnly("org.postgresql:postgresql:42.7.3")
     implementation 'info.picocli:picocli:4.6.3'
     annotationProcessor 'info.picocli:picocli-codegen:4.6.3'
 
@@ -62,6 +63,8 @@ dependencies {
     testImplementation "org.testcontainers:testcontainers:1.16.3"
     testImplementation "org.testcontainers:mysql:1.16.3"
     testImplementation "org.testcontainers:spock:1.16.3"
+    testImplementation 'org.testcontainers:postgresql:1.16.3'
+    testImplementation("org.postgresql:postgresql:42.7.3")
 
     // Dummy library containing some migration files among their resources for testing purposes
     testImplementation files("libs/jar-with-resources.jar")
