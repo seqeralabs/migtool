@@ -18,7 +18,7 @@ class MysqlTest extends Specification {
     static MySQLContainer container
 
     static {
-        container = new MySQLContainer("mysql:5.6")
+        container = new MySQLContainer("mysql:8.0")
         // start it -- note: it's stopped automatically
         // https://www.testcontainers.org/test_framework_integration/manual_lifecycle_control/
         container.start()
