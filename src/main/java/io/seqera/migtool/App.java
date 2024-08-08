@@ -5,9 +5,8 @@ import java.util.concurrent.Callable;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-
-import static io.seqera.migtool.Helper.driverFromUrl;
 import static io.seqera.migtool.Helper.dialectFromUrl;
+import static io.seqera.migtool.Helper.driverFromUrl;
 
 /**
  * Mig tool main launcher
