@@ -1,10 +1,11 @@
-package io.seqera.migtool.builder;
+package io.seqera.migtool.template;
 
 /**
+ * PostreSQL dialect implementation
  *
  * @author Paolo Di Tommaso <paolo.ditommaso@gmail.com>
  */
-class PostgresSqlTemplate extends SqlTemplate {
+class PostgreSqlTemplate extends SqlTemplate {
 
     @Override
     public String selectMaxRank(String table) {

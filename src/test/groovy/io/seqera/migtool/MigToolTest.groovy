@@ -4,8 +4,9 @@
 package io.seqera.migtool
 
 import java.nio.file.Files
-import io.seqera.migtool.resources.ClassFromJarWithResources
 
+import io.seqera.migtool.template.SqlTemplate
+import io.seqera.migtool.resources.ClassFromJarWithResources
 import spock.lang.Specification
 
 class MigToolTest extends Specification {
@@ -655,6 +656,32 @@ class MigToolTest extends Specification {
         tool.scanMigrations()
         then:
         thrown(IllegalArgumentException)
+    }
+
+    def 'should validate tool parameters' () {
+        when:
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test15;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("/foo/bar")
+        then:
+        tool.driver == 'org.h2.Driver'
+        tool.dialect == 'h2'
+        tool.url == 'jdbc:h2:mem:test15;DB_CLOSE_DELAY=-1'
+        tool.user == 'sa'
+        tool.password == ''
+        tool.locations == "/foo/bar"
+        tool.template.class == SqlTemplate.defaultTemplate().class
+
+        when:
+        tool = new MigTool()
+                .withDialect('postgresql')
+        then:
+        tool.dialect == 'postgresql'
+        tool.template.class == SqlTemplate.from('postgresql').class
     }
 
 }

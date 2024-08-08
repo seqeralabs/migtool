@@ -14,15 +14,21 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import groovy.lang.Binding;
 import groovy.lang.Closure;
 import groovy.lang.GroovyShell;
 import groovy.sql.Sql;
-import io.seqera.migtool.builder.DefaultSqlTemplate;
-import io.seqera.migtool.builder.SqlTemplate;
+import io.seqera.migtool.template.SqlTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +62,7 @@ public class MigTool {
     Pattern pattern;
     String schema;
     String catalog;
-    SqlTemplate builder = new DefaultSqlTemplate();
+    SqlTemplate template = SqlTemplate.defaultTemplate();
 
     private final List<MigRecord> migrationEntries;
     private final List<MigRecord> patchEntries;
@@ -90,6 +96,7 @@ public class MigTool {
 
     public MigTool withDialect(String dialect) {
         this.dialect = dialect;
+        this.template = SqlTemplate.from(dialect);
         return this;
     }
 
@@ -106,11 +113,6 @@ public class MigTool {
     public MigTool withPattern(String pattern) {
         if(pattern!=null && !pattern.equals(""))
             this.pattern = Pattern.compile(pattern);
-        return this;
-    }
-
-    public MigTool withBuilder(SqlTemplate builder) {
-        this.builder = builder;
         return this;
     }
 
@@ -358,7 +360,7 @@ public class MigTool {
 
     protected void checkRank(MigRecord entry) {
         try(Connection conn=getConnection(); Statement stm = conn.createStatement()) {
-            ResultSet rs = stm.executeQuery(builder.selectMaxRank(MIGTOOL_TABLE));
+            ResultSet rs = stm.executeQuery(template.selectMaxRank(MIGTOOL_TABLE));
             int last = rs.next() ? rs.getInt(1) : 0;
             int expected = last+1;
             if( entry.rank != expected) {
@@ -442,7 +444,7 @@ public class MigTool {
         int delta = (int)(System.currentTimeMillis()-now);
 
         // save the current migration
-        final String insertSql = builder.insetMigration(MIGTOOL_TABLE);
+        final String insertSql = template.insetMigration(MIGTOOL_TABLE);
         try (Connection conn=getConnection(); PreparedStatement insert = conn.prepareStatement(insertSql)) {
             insert.setInt(1, entry.rank);
             insert.setString(2, entry.script);
@@ -455,7 +457,7 @@ public class MigTool {
     }
 
     protected boolean checkMigrated(MigRecord entry) {
-        final String sql = builder.selectMigration(MIGTOOL_TABLE);
+        final String sql = template.selectMigration(MIGTOOL_TABLE);
 
         try (Connection conn=getConnection(); PreparedStatement stm = conn.prepareStatement(sql)) {
             stm.setInt(1, entry.rank);

@@ -1,10 +1,11 @@
-package io.seqera.migtool.builder;
+package io.seqera.migtool.template;
 
 /**
+ * Default SQL template for migtool SQL statements
  *
  * @author Paolo Di Tommaso <paolo.ditommaso@gmail.com>
  */
-public class DefaultSqlTemplate extends SqlTemplate {
+class DefaultSqlTemplate extends SqlTemplate {
     @Override
     public String selectMaxRank(String table) {
         return "select max(`rank`) from " + table;

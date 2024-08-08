@@ -2,13 +2,11 @@ package io.seqera.migtool;
 
 import java.util.concurrent.Callable;
 
-import io.seqera.migtool.builder.SqlTemplate;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
-
-import static io.seqera.migtool.Helper.driverFromUrl;
 import static io.seqera.migtool.Helper.dialectFromUrl;
+import static io.seqera.migtool.Helper.driverFromUrl;
 
 /**
  * Mig tool main launcher
@@ -52,8 +50,7 @@ public class App implements Callable<Integer> {
                 .withDialect(dialect!=null ? dialect : dialectFromUrl(url))
                 .withDriver(driver!=null ? driver : driverFromUrl(url))
                 .withLocations(location)
-                .withPattern(pattern)
-                .withBuilder(SqlTemplate.from(dialect!=null ? dialect : dialectFromUrl(url)));
+                .withPattern(pattern);
 
         try {
             tool.run();

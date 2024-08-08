@@ -1,6 +1,8 @@
-package io.seqera.migtool.builder;
+package io.seqera.migtool.template;
 
 /**
+ * Implements a simple template pattern to provide specialised
+ * version of required SQL statements depending on the specified SQL "dialect"
  *
  * @author Paolo Di Tommaso <paolo.ditommaso@gmail.com>
  */
@@ -14,9 +16,13 @@ public abstract class SqlTemplate {
 
     static public SqlTemplate from(String dialect) {
         if( "postgresql".equals(dialect) )
-            return new PostgresSqlTemplate();
+            return new PostgreSqlTemplate();
         else
             return new DefaultSqlTemplate();
+    }
+
+    public static SqlTemplate defaultTemplate() {
+        return new DefaultSqlTemplate();
     }
 
 }
