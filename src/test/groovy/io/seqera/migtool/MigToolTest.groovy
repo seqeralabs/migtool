@@ -684,4 +684,23 @@ class MigToolTest extends Specification {
         tool.template.class == SqlTemplate.from('postgresql').class
     }
 
+    def 'should infer dialect and driver for url'() {
+        given:
+        def tool = new MigTool()
+                .withDriver('org.h2.Driver')
+                .withDialect('h2')
+                .withUrl('jdbc:h2:mem:test15;DB_CLOSE_DELAY=-1')
+                .withUser('sa')
+                .withPassword('')
+                .withLocations("/foo/bar")
+
+        when:
+        tool.init()
+        then:
+        tool.url == 'jdbc:h2:mem:test15;DB_CLOSE_DELAY=-1'
+        tool.driver == 'org.h2.Driver'
+        tool.dialect == 'h2'
+        tool.template.class == SqlTemplate.defaultTemplate().class
+    }
+
 }
