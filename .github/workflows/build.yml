@@ -23,7 +23,7 @@ jobs:
         run: env | sort
 
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -31,7 +31,8 @@ jobs:
         uses: graalvm/setup-graalvm@v1
         with:
           java-version: '17.0.8'
-          distribution: 'graalvm'
+          distribution: 'graalvm-community'
+          native-image-job-reports: 'true'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install native-image component
