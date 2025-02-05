@@ -10,7 +10,7 @@ plugins {
     id 'java'
     id 'groovy'
     id 'application'
-    id 'org.graalvm.buildtools.native' version '0.9.28'
+    id 'org.graalvm.buildtools.native' version '0.10.5'
     id 'maven-publish'
 }
 
@@ -20,12 +20,12 @@ group = 'io.seqera'
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 
     compileJava {
         // Set binary compatibility for Java compiler to 11 (worth checking to update this also)
-        options.release.set(11)
+        options.release.set(17)
     }
 }
 
@@ -41,25 +41,24 @@ configurations[nativeCliTest.runtimeOnlyConfigurationName].extendsFrom(configura
 
 dependencies {
     // This dependency is used by the application.
-    implementation "ch.qos.logback:logback-classic:1.2.3"
-    runtimeOnly 'mysql:mysql-connector-java:8.0.22'
+    implementation "ch.qos.logback:logback-classic:1.5.16"
+    runtimeOnly 'mysql:mysql-connector-java:8.0.33'
     runtimeOnly 'com.h2database:h2:1.4.200'
-    runtimeOnly 'mysql:mysql-connector-java:8.0.28'
+    runtimeOnly 'mysql:mysql-connector-java:8.0.33'
     runtimeOnly 'org.xerial:sqlite-jdbc:3.42.0.0'
     runtimeOnly("org.postgresql:postgresql:42.7.3")
     implementation 'info.picocli:picocli:4.6.3'
     annotationProcessor 'info.picocli:picocli-codegen:4.6.3'
 
-    implementation "org.codehaus.groovy:groovy:3.0.9"
-    implementation "org.codehaus.groovy:groovy-sql:3.0.9"
+    implementation "org.apache.groovy:groovy:4.0.25"
+    implementation "org.apache.groovy:groovy-sql:4.0.25"
 
     // Use the latest Groovy version for Spock testing
-    testImplementation "org.codehaus.groovy:groovy:3.0.9"
-    testImplementation "org.codehaus.groovy:groovy-nio:3.0.9"
-    testImplementation platform("org.spockframework:spock-bom:2.1-groovy-3.0")
-    testImplementation "org.spockframework:spock-core"
-    testImplementation "org.spockframework:spock-junit4"  // you can remove this if your code does not rely on old JUnit 4 rules
-    testImplementation 'junit:junit:4.13'
+    testImplementation "org.apache.groovy:groovy:4.0.25"
+    testImplementation "org.apache.groovy:groovy-nio:4.0.25"
+    testImplementation ("org.spockframework:spock-core:2.3-groovy-4.0") { exclude group: 'org.apache.groovy' }
+    testImplementation ('org.spockframework:spock-junit4:2.3-groovy-4.0') { exclude group: 'org.apache.groovy' }
+    testImplementation 'junit:junit:4.13.2'
     testImplementation "org.testcontainers:testcontainers:1.20.1"
     testImplementation "org.testcontainers:mysql:1.16.3"
     testImplementation "org.testcontainers:spock:1.16.3"
@@ -70,7 +69,7 @@ dependencies {
     testImplementation files("libs/jar-with-resources.jar")
 
     nativeCliTestImplementation project
-    nativeCliTestImplementation "org.codehaus.groovy:groovy-sql:3.0.9"
+    nativeCliTestImplementation "org.apache.groovy:groovy-sql:4.0.25"
 }
 
 test {
@@ -125,8 +124,6 @@ graalvmNative {
             mainClass = 'io.seqera.migtool.App'
             configurationFileDirectories.from(file('conf'))
 
-
-            buildArgs(org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isLinux() ? ['--static', ] : [])
             buildArgs.add('--allow-incomplete-classpath')
             buildArgs.add('--report-unsupported-elements-at-runtime')
             buildArgs.add('--initialize-at-run-time=sun.nio.ch.WindowsAsynchronousFileChannelImpl$DefaultIocpHolder')
@@ -139,7 +136,7 @@ graalvmNative {
             buildArgs.add('-H:+PrintClassInitialization')
 
             javaLauncher = javaToolchains.launcherFor {
-                languageVersion = JavaLanguageVersion.of(17)
+                languageVersion = JavaLanguageVersion.of(21)
             }
         }
     }
