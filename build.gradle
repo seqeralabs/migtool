@@ -124,8 +124,6 @@ graalvmNative {
             mainClass = 'io.seqera.migtool.App'
             configurationFileDirectories.from(file('conf'))
 
-
-            buildArgs(org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem.isLinux() ? ['--static', '--libc=musl'] : [])
             buildArgs.add('--allow-incomplete-classpath')
             buildArgs.add('--report-unsupported-elements-at-runtime')
             buildArgs.add('--initialize-at-run-time=sun.nio.ch.WindowsAsynchronousFileChannelImpl$DefaultIocpHolder')
