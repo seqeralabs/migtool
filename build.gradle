@@ -42,9 +42,8 @@ configurations[nativeCliTest.runtimeOnlyConfigurationName].extendsFrom(configura
 dependencies {
     // This dependency is used by the application.
     implementation "ch.qos.logback:logback-classic:1.5.16"
-    runtimeOnly 'mysql:mysql-connector-java:8.0.33'
-    runtimeOnly 'com.h2database:h2:1.4.200'
-    runtimeOnly 'mysql:mysql-connector-java:8.0.33'
+    runtimeOnly 'com.mysql:mysql-connector-j:9.2.0'
+    runtimeOnly 'com.h2database:h2:2.2.224'
     runtimeOnly 'org.xerial:sqlite-jdbc:3.42.0.0'
     runtimeOnly("org.postgresql:postgresql:42.7.3")
     implementation 'info.picocli:picocli:4.6.3'
