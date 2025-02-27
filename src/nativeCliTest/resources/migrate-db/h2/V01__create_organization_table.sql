@@ -10,7 +10,7 @@ CREATE TABLE `organization`
     `address`      varchar(255)          DEFAULT NULL,
     `zip`          varchar(25)           DEFAULT NULL,
     `country`      varchar(125)           DEFAULT NULL,
-    `deleted`      tinyint(1)   NOT NULL DEFAULT 0,
+    `deleted`      boolean   NOT NULL DEFAULT false,
     `date_created` datetime     NOT NULL,
     `last_updated` datetime     NOT NULL,
     PRIMARY KEY (id)
@@ -31,10 +31,10 @@ CREATE TABLE `license`
     `last_updated`    datetime    NOT NULL,
     `last_accessed`   datetime,
     `last_access_ip`  varchar(255)          DEFAULT NULL,
-    `access_count`    int(11)      NOT NULL DEFAULT 0,
-    `suspended`       tinyint(1)   NOT NULL DEFAULT 0,
-    `deleted`         tinyint(1)   NOT NULL DEFAULT 0,
-    `expired`         tinyint(1)   NOT NULL DEFAULT 0,
+    `access_count`    int       NOT NULL DEFAULT 0,
+    `suspended`       boolean   NOT NULL DEFAULT false,
+    `deleted`         boolean   NOT NULL DEFAULT false,
+    `expired`         boolean   NOT NULL DEFAULT false,
     PRIMARY KEY (id),
     FOREIGN KEY (organization_id) REFERENCES organization(id)
 );
