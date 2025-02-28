@@ -1,8 +1,10 @@
 MIGTOOL CHANGE-LOG
 ===================
+1.8.0 - 27 Feb 2025
+- Upgrade MySQL connector dependency to 9.2.0 (compatible with MySQL 8.x only) and H2 dependency to 2.2.224 (#53) [ff1469f]
+
 1.7.0 - 5 Feb 2025
 - Bump Groovy runtime to version 4
-
 
 1.6.0 - 18 Sep 2024
 - Implement a simple sql template to support PostgreSQL (#49) [8d518b7]
