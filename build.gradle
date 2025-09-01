@@ -45,7 +45,7 @@ dependencies {
     runtimeOnly 'com.mysql:mysql-connector-j:9.2.0'
     runtimeOnly 'com.h2database:h2:2.2.224'
     runtimeOnly 'org.xerial:sqlite-jdbc:3.42.0.0'
-    runtimeOnly("org.postgresql:postgresql:42.7.3")
+    runtimeOnly("org.postgresql:postgresql:42.7.7")
     implementation 'info.picocli:picocli:4.6.3'
     annotationProcessor 'info.picocli:picocli-codegen:4.6.3'
 
