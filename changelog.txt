@@ -1,5 +1,8 @@
 MIGTOOL CHANGE-LOG
 ===================
+1.8.1 - 1 Sep 2025
+- Upgrade PostgreSQL dependency to non-vulnerable version (#55) [b1f6323]
+
 1.8.0 - 27 Feb 2025
 - Upgrade MySQL connector dependency to 9.2.0 (compatible with MySQL 8.x only) and H2 dependency to 2.2.224 (#53) [ff1469f]
 
