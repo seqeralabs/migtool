@@ -37,6 +37,12 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
 
+      - name: Setup Docker on macOS
+        if: runner.os == 'macOS'
+        uses: douglascamata/setup-docker-macos-action@v1.0.1
+        with:
+          colima-network-address: true
+
       - name: Tests
         run: ./gradlew check
 
