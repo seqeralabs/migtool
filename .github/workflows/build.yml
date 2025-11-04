@@ -11,12 +11,14 @@ on:
 
 jobs:
   build:
-    name: Migtool build
+    name: Migtool build for ${{matrix.os}}
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
-    runs-on: ubuntu-latest
+    runs-on: ${{matrix.os}}
     timeout-minutes: 90
     strategy:
       fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - name: Environment
@@ -42,17 +44,17 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: linux-test-reports
+          name: ${{matrix.os}}-test-reports
           path: build/reports/tests/test/
           overwrite: true
 
       - name: Build Native Image
         run: ./gradlew nativeCompile
 
-      - name: Upload linux native image artifact
+      - name: Upload ${{matrix.os}} native image artifact
         uses: actions/upload-artifact@v4
         with:
-          name: migtool-linux
+          name: migtool-${{matrix.os}}
           path: build/native/nativeCompile/migtool
           overwrite: true
 
@@ -65,7 +67,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: linux-testsNative-reports
+          name: ${{matrix.os}}-testsNative-reports
           path: build/reports/tests/nativeCliTest/
           overwrite: true
 
