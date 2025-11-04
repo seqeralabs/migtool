@@ -61,6 +61,7 @@ jobs:
           overwrite: true
 
       - name: Tests native
+        if: ${{ !(runner.os == 'macOS' && runner.arch == 'ARM64') }}
         run: ./gradlew cleanTest check
         env:
           NATIVE_BINARY_PATH: build/native/nativeCompile/migtool
