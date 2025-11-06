@@ -10,22 +10,20 @@ on:
       - '**'
 
 jobs:
-  build:
-    name: Migtool build for ${{matrix.os}}
+  build-linux:
+    name: Migtool build for linux-x86
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
-    runs-on: ${{matrix.os}}
+    runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
 
     steps:
       - name: Environment
         run: env | sort
 
       - name: Checkout
-        uses: actions/checkout@v1
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -37,31 +35,28 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           native-image-job-reports: 'true'
 
-
       - name: Tests
-        if: ${{ !(runner.os == 'macOS' && runner.arch == 'ARM64') }}
         run: ./gradlew check
 
       - name: Tests reports
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{matrix.os}}-test-reports
+          name: linux-test-reports
           path: build/reports/tests/test/
           overwrite: true
 
       - name: Build Native Image
         run: ./gradlew nativeCompile
 
-      - name: Upload ${{matrix.os}} native image artifact
+      - name: Upload linux native image artifact
         uses: actions/upload-artifact@v4
         with:
-          name: migtool-${{matrix.os}}
+          name: migtool-linux-x86
           path: build/native/nativeCompile/migtool
           overwrite: true
 
       - name: Tests native
-        if: ${{ !(runner.os == 'macOS' && runner.arch == 'ARM64') }}
         run: ./gradlew cleanTest check
         env:
           NATIVE_BINARY_PATH: build/native/nativeCompile/migtool
@@ -70,14 +65,77 @@ jobs:
         uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: ${{matrix.os}}-testsNative-reports
+          name: linux-testsNative-reports
           path: build/reports/tests/nativeCliTest/
+          overwrite: true
+
+  build-macos:
+    name: Migtool build for MacOS-arm64
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    runs-on: macos-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+
+    steps:
+      - name: Environment
+        run: env | sort
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Graalvm
+        uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          native-image-job-reports: 'true'
+
+      - name: Build Native Image
+        run: ./gradlew nativeCompile
+
+      - name: Codesign binary
+        if: contains(github.event.head_commit.message, '[release]') && github.event.ref == 'refs/heads/master'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          MACOS_CERTIFICATE_NAME: ${{ secrets.MACOS_CERTIFICATE_NAME }}
+          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
+        run: |
+          echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
+          security create-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime build/native/nativeCompile/migtool -v
+
+      - name: Notarize binary
+        if: contains(github.event.head_commit.message, '[release]') && github.event.ref == 'refs/heads/master'
+        env:
+          MACOS_AC_API_CERT: ${{ secrets.MACOS_AC_API_CERT }}
+          MACOS_AC_API_ISSUER_ID: ${{ secrets.MACOS_AC_API_ISSUER_ID }}
+          MACOS_AC_API_KEY_ID: ${{ secrets.MACOS_AC_API_KEY_ID }}
+        run: |
+          echo $MACOS_AC_API_CERT | base64 --decode > AuthKey.p8
+          xcrun notarytool store-credentials "notarytool-profile" -k AuthKey.p8 -d "$MACOS_AC_API_KEY_ID" -i "$MACOS_AC_API_ISSUER_ID"
+          ditto -c -k --keepParent "build/native/nativeCompile/migtool" "notarization.zip"
+          xcrun notarytool submit "notarization.zip" --keychain-profile "notarytool-profile" --wait
+
+      - name: Upload MacOS native image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: migtool-macos-arm64
+          path: build/native/nativeCompile/migtool
           overwrite: true
 
   release:
     name: Release
     if: "contains(github.event.head_commit.message, '[release]') && github.event.ref=='refs/heads/master'"
-    needs: [ build ]
+    needs: [ build-linux, build-macos ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -99,7 +157,7 @@ jobs:
         run: |
           VERSION=$(cat ./VERSION)
           echo "VERSION = $VERSION"
-          echo "::set-output name=VERSION::$VERSION"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Run JReleaser
         uses: jreleaser/release-action@v2
