@@ -98,7 +98,7 @@ jobs:
         run: ./gradlew nativeCompile
 
       - name: Codesign binary
-        if: contains(github.event.head_commit.message, '[release]') && github.event.ref == 'refs/heads/master'
+        if: contains(github.event.head_commit.message, '[release]')
         env:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
@@ -114,7 +114,7 @@ jobs:
           /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime build/native/nativeCompile/migtool -v
 
       - name: Notarize binary
-        if: contains(github.event.head_commit.message, '[release]') && github.event.ref == 'refs/heads/master'
+        if: contains(github.event.head_commit.message, '[release]')
         env:
           MACOS_AC_API_CERT: ${{ secrets.MACOS_AC_API_CERT }}
           MACOS_AC_API_ISSUER_ID: ${{ secrets.MACOS_AC_API_ISSUER_ID }}
@@ -134,7 +134,7 @@ jobs:
 
   release:
     name: Release
-    if: "contains(github.event.head_commit.message, '[release]') && github.event.ref=='refs/heads/master'"
+    if: "contains(github.event.head_commit.message, '[release]')"
     needs: [ build-linux, build-macos ]
     runs-on: ubuntu-latest
     steps:
@@ -161,6 +161,8 @@ jobs:
 
       - name: Run JReleaser
         uses: jreleaser/release-action@v2
+        with:
+          arguments: --dry-run
         env:
           JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JRELEASER_PROJECT_VERSION: ${{ steps.version.outputs.VERSION }}
