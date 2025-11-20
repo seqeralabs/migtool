@@ -59,7 +59,11 @@ finally run it following the example below:
 >
 > Due to current limitations in GraalVM when it comes to running arbitrary Groovy scripts, the binary can only run SQL migration files.
 
-                                                        
+> **Note**
+>
+> When building on macOS, if you encounter the error `com.oracle.svm.core.util.UserError$UserException: DARWIN does not support building static executable images`, you need to remove the `-H:+StaticExecutableWithDynamicLibC` flag from the `buildArgs` in `build.gradle`.
+
+
 #### Options 
 
 * `username`: Target database connection username.
