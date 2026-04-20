@@ -39,7 +39,7 @@ jobs:
         run: ./gradlew check
 
       - name: Tests reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
         with:
           name: linux-test-reports
@@ -50,7 +50,7 @@ jobs:
         run: ./gradlew nativeCompile
 
       - name: Upload linux native image artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: migtool-linux-x86
           path: build/native/nativeCompile/migtool
@@ -62,7 +62,7 @@ jobs:
           NATIVE_BINARY_PATH: build/native/nativeCompile/migtool
 
       - name: TestsNative reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: failure()
         with:
           name: linux-testsNative-reports
@@ -126,7 +126,7 @@ jobs:
           xcrun notarytool submit "notarization.zip" --keychain-profile "notarytool-profile" --wait
 
       - name: Upload MacOS native image artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: migtool-macos-arm64
           path: build/native/nativeCompile/migtool
