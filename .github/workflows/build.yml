@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 1
 
       - name: Setup Graalvm
-        uses: graalvm/setup-graalvm@v1
+        uses: graalvm/setup-graalvm@bef4b0e916c7dd079bf60fb95d49139f67e32c5f # v1.5.3
         with:
           java-version: '21'
           distribution: 'graalvm'
@@ -87,7 +87,7 @@ jobs:
           fetch-depth: 1
 
       - name: Setup Graalvm
-        uses: graalvm/setup-graalvm@v1
+        uses: graalvm/setup-graalvm@bef4b0e916c7dd079bf60fb95d49139f67e32c5f # v1.5.3
         with:
           java-version: '21'
           distribution: 'graalvm'
