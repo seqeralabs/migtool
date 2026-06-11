@@ -141,14 +141,73 @@ class MigRecord implements Comparable<MigRecord> {
     }
 
     private static List<String> getSqlStatements(String sql) {
-        String[] tokens = sql.split(";");
-        List<String> result = new ArrayList<>(tokens.length);
+        List<String> result = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        int len = sql.length();
+        int i = 0;
 
-        for( int i=0; i<tokens.length; i++) {
-            String clean = tokens[i].trim();
-            if( clean.length()>0 )
-                result.add( clean + ';' ) ;
+        while (i < len) {
+            char c = sql.charAt(i);
+
+            // -- line comment: skip until end of line
+            if (c == '-' && i + 1 < len && sql.charAt(i + 1) == '-') {
+                int end = sql.indexOf('\n', i);
+                if (end == -1) end = len;
+                else end += 1; // include the newline
+                current.append(sql, i, end);
+                i = end;
+                continue;
+            }
+
+            // /* block comment */: skip until */
+            if (c == '/' && i + 1 < len && sql.charAt(i + 1) == '*') {
+                int end = sql.indexOf("*/", i + 2);
+                if (end == -1) end = len;
+                else end += 2; // include the closing */
+                current.append(sql, i, end);
+                i = end;
+                continue;
+            }
+
+            // quoted string: skip until matching closing quote (handles '' escapes)
+            if (c == '\'' || c == '"') {
+                char quote = c;
+                current.append(c);
+                i++;
+                while (i < len) {
+                    char qc = sql.charAt(i);
+                    current.append(qc);
+                    i++;
+                    if (qc == quote) {
+                        // handle doubled-quote escape
+                        if (i < len && sql.charAt(i) == quote) {
+                            current.append(sql.charAt(i));
+                            i++;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+                continue;
+            }
+
+            if (c == ';') {
+                String clean = current.toString().trim();
+                if (!clean.isEmpty())
+                    result.add(clean + ';');
+                current.setLength(0);
+                i++;
+                continue;
+            }
+
+            current.append(c);
+            i++;
         }
+
+        // trailing content with no closing semicolon
+        String clean = current.toString().trim();
+        if (!clean.isEmpty())
+            result.add(clean + ';');
 
         return result;
     }

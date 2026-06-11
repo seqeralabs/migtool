@@ -192,6 +192,34 @@ class MigRecordTest extends Specification {
         entry1.checksum == '71a8b87777c309059c43f8157d20ffcf25edd1669c4163f8eb2b48ddb663616e'
     }
 
+    def 'should not split on semicolons inside SQL comments'() {
+        given:
+        def folder = Files.createTempDirectory('test')
+
+        // semicolon inside a -- line comment must NOT be treated as a statement separator
+        final file1 = folder.resolve('V01__file1.sql')
+        file1.text = '-- this is a comment; not a separator\ncreate table XXX ( col1 varchar(1) );'
+
+        // semicolon inside a /* block comment */ must NOT be treated as a statement separator
+        final file2 = folder.resolve('V02__file2.sql')
+        file2.text = '/* block comment; still a comment */\ncreate table YYY ( col1 varchar(1) );'
+
+        when:
+        def entry1 = MigRecord.parseFilePath(file1, null)
+        def entry2 = MigRecord.parseFilePath(file2, null)
+
+        then: 'the comment line should not produce an extra statement'
+        entry1.statements.size() == 1
+        entry1.statements == ['-- this is a comment; not a separator\ncreate table XXX ( col1 varchar(1) );']
+
+        and: 'the block comment should not produce an extra statement'
+        entry2.statements.size() == 1
+        entry2.statements == ['/* block comment; still a comment */\ncreate table YYY ( col1 varchar(1) );']
+
+        cleanup:
+        folder?.deleteDir()
+    }
+
     def 'compare records for SQL files with same statements'() {
         given: 'some files with the same statements'
         def folder = Files.createTempDirectory('test')
