@@ -220,6 +220,34 @@ class MigRecordTest extends Specification {
         folder?.deleteDir()
     }
 
+    def 'should not split on semicolons inside string literals'() {
+        given:
+        def folder = Files.createTempDirectory('test')
+
+        // semicolon inside a single-quoted string must NOT be treated as a statement separator
+        final file1 = folder.resolve('V01__file1.sql')
+        file1.text = "insert into XXX ( col1 ) values ( 'a; b' );"
+
+        // a doubled-quote escape inside a string must not close the string prematurely
+        final file2 = folder.resolve('V02__file2.sql')
+        file2.text = "insert into YYY ( col1 ) values ( 'it''s; ok' );"
+
+        when:
+        def entry1 = MigRecord.parseFilePath(file1, null)
+        def entry2 = MigRecord.parseFilePath(file2, null)
+
+        then: 'the single-quoted string should not produce an extra statement'
+        entry1.statements.size() == 1
+        entry1.statements == ["insert into XXX ( col1 ) values ( 'a; b' );"]
+
+        and: 'the escaped-quote string should not produce an extra statement'
+        entry2.statements.size() == 1
+        entry2.statements == ["insert into YYY ( col1 ) values ( 'it''s; ok' );"]
+
+        cleanup:
+        folder?.deleteDir()
+    }
+
     def 'compare records for SQL files with same statements'() {
         given: 'some files with the same statements'
         def folder = Files.createTempDirectory('test')
