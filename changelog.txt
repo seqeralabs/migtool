@@ -1,5 +1,9 @@
 MIGTOOL CHANGE-LOG
 ===================
+1.8.2 - 12 Jun 2026
+- Add support for MacOS native builds https://github.com/seqeralabs/migtool/pull/57
+- Ignore semicolons inside block comments, line comments and string literals github.com/seqeralabs/migtool/pull/68
+
 1.8.1 - 1 Sep 2025
 - Upgrade PostgreSQL dependency to non-vulnerable version (#55) [b1f6323]
 
