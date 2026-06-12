@@ -140,17 +140,63 @@ class MigRecord implements Comparable<MigRecord> {
         }
     }
 
+    /**
+     * Splits the content of a SQL migration file into individual statements.
+     *
+     * Statements are separated by semicolons, but semicolons appearing inside a
+     * line comment ({@code -- ...}), a block comment ({@code /* ... *&#47;}) or a
+     * quoted string literal ({@code '...'} or {@code "..."}) are ignored so they
+     * are not mistaken for statement separators.
+     */
     private static List<String> getSqlStatements(String sql) {
-        String[] tokens = sql.split(";");
-        List<String> result = new ArrayList<>(tokens.length);
+        List<String> result = new ArrayList<>();
+        boolean inLineComment = false;
+        boolean inBlockComment = false;
+        char quote = '\0'; // current open string delimiter, or '\0' when not in a string
+        int start = 0;
 
-        for( int i=0; i<tokens.length; i++) {
-            String clean = tokens[i].trim();
-            if( clean.length()>0 )
-                result.add( clean + ';' ) ;
+        for (int i = 0; i < sql.length(); i++) {
+            char c = sql.charAt(i);
+            char next = i + 1 < sql.length() ? sql.charAt(i + 1) : '\0';
+
+            if (inLineComment) {
+                if (c == '\n') inLineComment = false;
+            }
+            else if (inBlockComment) {
+                if (c == '*' && next == '/') inBlockComment = false;
+            }
+            else if (quote != '\0') {
+                // inside a string literal: a doubled quote is an escaped quote, not the end
+                if (c == quote) {
+                    if (next == quote) i++;
+                    else quote = '\0';
+                }
+            }
+            else if (c == '-' && next == '-') {
+                inLineComment = true;
+            }
+            else if (c == '/' && next == '*') {
+                inBlockComment = true;
+            }
+            else if (c == '\'' || c == '"') {
+                quote = c;
+            }
+            else if (c == ';') {
+                addStatement(result, sql.substring(start, i));
+                start = i + 1;
+            }
         }
 
+        // trailing content with no closing semicolon
+        addStatement(result, sql.substring(start));
+
         return result;
+    }
+
+    private static void addStatement(List<String> statements, String statement) {
+        String clean = statement.trim();
+        if (!clean.isEmpty())
+            statements.add(clean + ';');
     }
 
     private static String join(List<String> items) {
