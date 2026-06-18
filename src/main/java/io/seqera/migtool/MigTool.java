@@ -31,6 +31,8 @@ import groovy.sql.Sql;
 import io.seqera.migtool.template.SqlTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import static io.seqera.migtool.Helper.dialectFromUrl;
+import static io.seqera.migtool.Helper.driverFromUrl;
 
 /**
  * Implement a simple migration tool inspired to Flyway
@@ -95,8 +97,10 @@ public class MigTool {
     }
 
     public MigTool withDialect(String dialect) {
-        this.dialect = dialect;
-        this.template = SqlTemplate.from(dialect);
+        if( dialect!=null ) {
+            this.dialect = dialect;
+            this.template = SqlTemplate.from(dialect);
+        }
         return this;
     }
 
@@ -177,6 +181,16 @@ public class MigTool {
      * Validate the expected input params and open the connection with the DB
      */
     protected void init() {
+        if( driver==null && url!=null ) {
+            withDriver(driverFromUrl(url));
+        }
+        if( dialect==null && url!=null ) {
+            withDialect(dialectFromUrl(url));
+        }
+        if( dialect!=null ) {
+            template = SqlTemplate.from(dialect);
+        }
+
         if( dialect==null || dialect.isEmpty() )
             throw new IllegalStateException("Missing 'dialect' attribute");
         if( url==null || url.isEmpty() )
