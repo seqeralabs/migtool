@@ -83,6 +83,7 @@ application {
 
 ext.aws_access_key_id = project.findProperty('aws_access_key_id') ?: System.getenv('AWS_ACCESS_KEY_ID')
 ext.aws_secret_access_key = project.findProperty('aws_secret_access_key') ?: System.getenv('AWS_SECRET_ACCESS_KEY')
+ext.aws_session_token = project.findProperty('aws_session_token') ?: System.getenv('AWS_SESSION_TOKEN')
 ext.publishRepoUrl = project.findProperty('publish_repo_url') ?: System.getenv('PUBLISH_REPO_URL') ?: ( version.endsWith('-SNAPSHOT') ? "s3://maven.seqera.io/snapshots" : "s3://maven.seqera.io/releases" )
 
 // Add sources to JARs.
@@ -101,8 +102,9 @@ publishing {
             url = publishRepoUrl
             credentials(AwsCredentials) {
                 // keys are defined in the `gradle.properties` file
-                accessKey aws_access_key_id
-                secretKey aws_secret_access_key
+                accessKey(aws_access_key_id)
+                secretKey(aws_secret_access_key)
+                if(aws_session_token) { sessionToken(aws_session_token) }
             }
         }
     }
