@@ -99,10 +99,14 @@ publishing {
     repositories {
         maven {
             url = publishRepoUrl
-            credentials(AwsCredentials) {
-                // keys are defined in the `gradle.properties` file
-                accessKey aws_access_key_id
-                secretKey aws_secret_access_key
+            if (aws_access_key_id && aws_secret_access_key) {
+                credentials(AwsCredentials) {
+                    accessKey aws_access_key_id
+                    secretKey aws_secret_access_key
+                    if (System.getenv('AWS_SESSION_TOKEN')) {
+                        sessionToken System.getenv('AWS_SESSION_TOKEN')
+                    }
+                }
             }
         }
     }
