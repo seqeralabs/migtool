@@ -138,6 +138,7 @@ jobs:
     needs: [ build-linux, build-macos ]
     runs-on: ubuntu-latest
     permissions:
+      contents: write
       id-token: write
     steps:
       - name: Checkout repository
