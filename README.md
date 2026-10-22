@@ -41,6 +41,22 @@ MigTool is designed to be embedded in the target app. Use the following idiom:
     }
 ``` 
 
+### Artifacts
+
+MigTool is published in two flavours, with the same classes:
+
+* `io.seqera:migtool`: bundles the JDBC drivers for every supported dialect (MySQL, H2, SQLite, PostgreSQL),
+  the Logback logging backend and the picocli CLI library.
+* `io.seqera:migtool-slim`: depends only on Groovy and the SLF4J API. The embedding application provides the
+  JDBC driver for its database and its own SLF4J binding.
+
+```groovy
+dependencies {
+    implementation 'io.seqera:migtool-slim:<version>'
+    runtimeOnly 'org.postgresql:postgresql:<version>'
+}
+```
+
 ## Binary release 
 
 MigTool is also released as a pre-compiled Linux binary including H2 and MySQL drivers. To use it, download the 
